@@ -21,6 +21,7 @@ const skelStats = {
 };
 const button = Button.create({width:100,height:50})
 button.onMouseEnter=()=>{console.log('mouse enter !')}
+button.onMouseLeave=()=>{console.log('mouse leave !')}
 button.position={x:100,y:200}
 Promise.all([skel,female])
 .then(([skel, female]) => {
