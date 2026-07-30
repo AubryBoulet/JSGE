@@ -19,10 +19,18 @@ const skelStats = {
         console.log(`life : ${this.life}`)
     }
 };
-const button = Button.create({width:100,height:50})
-button.onMouseEnter=()=>{console.log('mouse enter !')}
-button.onMouseLeave=()=>{console.log('mouse leave !')}
-button.position={x:100,y:200}
+
+
+const button = Button.create({width:100,height:50});
+button.position={x:100,y:200};
+button.onMouseEnter=()=>{console.log('mouse enter !')};
+button.onMouseLeave=()=>console.log('mouse leave !');
+button.backgroundColor='#F0F';
+// button.boxShadow=[-6,-5];
+// button.boxShadow=[[-6,-5,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
+// button.borderRadius = [10,5,20,0];
+
+
 Promise.all([skel,female])
 .then(([skel, female]) => {
     // Entities creation & animations
