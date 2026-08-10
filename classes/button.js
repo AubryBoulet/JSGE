@@ -4,14 +4,14 @@ class Button extends Gadget {
     #backgroundType;
     #backgroundInfos;
 
-    constructor({position,dimension,backgroundType}){
-        super({position,dimension})
+    constructor({position,dimension,backgroundType,value}){
+        super({position,dimension,value})
         backgroundType= backgroundType;
     }
-    static create(dimension,position={x:0,y:0},backgroundType='color',src=undefined){
+    static create(value,dimension,position={x:0,y:0},backgroundType='color',src=undefined){
         if(backgroundType !=='color' && backgroundType !== 'image')
             throw new Error('Invalid backgroundType, must be "color" or "image"');
-        const button = new Button({dimension:dimension,position:position,backgroundType:backgroundType === 'image' ? undefined:backgroundType})
+        const button = new Button({dimension:dimension,position:position,value:value})
         this.cachCanvas = document.createElement('canvas');
         if(backgroundType === 'image'&&src) {
             this.backgroundImage = src

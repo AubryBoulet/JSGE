@@ -21,15 +21,28 @@ const skelStats = {
 };
 
 
-const button = Button.create({width:100,height:50});
-button.position={x:100,y:200};
-button.onMouseEnter=()=>{console.log('mouse enter !')};
-button.onMouseLeave=()=>console.log('mouse leave !');
+const button = Button.create("test",{width:100,height:50});
+button.position={x:380,y:200}; // target 294
+button.onMouseEnter=()=>{
+    console.log('mouse enter')
+    button.position.x -=4;
+    if(button.position.x > 294 && button.mouseEnter)
+        requestAnimationFrame(button.onMouseEnter);
+    if(button.position.x < 294) button.position.x = 294;
+};
+button.onMouseLeave=()=>{
+    console.log('mouse leave')
+    button.position.x +=4;
+    if(button.position.x < 380 && !button.mouseEnter)
+        requestAnimationFrame(button.onMouseLeave);
+    if(button.position.x > 380) button.position.x = 380;
+};
 button.backgroundColor='#F0F';
 // button.boxShadow=[-6,-5];
-// button.boxShadow=[[-6,-5,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
-// button.borderRadius = [10,5,20,0];
-
+button.textAlign = 'center'
+button.boxShadow=[[-6,-10,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
+button.font = '48px sherif'
+button.borderRadius = [10,5,20,0];
 
 Promise.all([skel,female])
 .then(([skel, female]) => {

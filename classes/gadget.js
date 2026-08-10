@@ -15,10 +15,19 @@ class Gadget {
     #onMouseLeave;
     #onClick;
     #drawInfos;
+    #value;
+    #textInfos={
+        font:"24px arial",
+        align:'start',
+        baseline:'alphabetic',
+        direction:'inherit',
+    };
+    #transitions=[];
 
-    constructor({position,dimension}) {
+    constructor({position,dimension,value}) {
         this.position = position;
         this.dimension = dimension;
+        this.value = value;
         this._cachCanvas = document.createElement('canvas');
         this.#drawInfos = {border: null,boxShadow:null,backgroundColor:"#fff",color:"#000",font:null,borderRadius:null};
         this.#updateCachCanvas();
@@ -37,8 +46,30 @@ class Gadget {
     draw(cam){
         if(!cam instanceof Camera) throw new Error('Invalide camera object in ',cam);
         const displayedPosition = {x:this.position.x+cam.position.x-this.#position.offsetX,y:this.position.y+cam.position.y-this.#position.offsetY}
+        if(displayedPosition.x > cam.dimensions.width+cam.position.x || displayedPosition.x + this._cachCanvas.width <= cam.position.x ||
+            displayedPosition.y > cam.dimensions.height+cam.position.y || displayedPosition.y + this._cachCanvas.height <= cam.position.y)
+            return;
+        const position = {x:0,y:0};
+        const dimension = {x:displayedPosition.x,y:displayedPosition.y,width:this._cachCanvas.width,height:this._cachCanvas.height};
+        if(displayedPosition.x < cam.position.x){
+            position.x=cam.position.x-displayedPosition.x;
+            dimension.x=cam.position.x;
+            dimension.width=dimension.width-position.x;
+        }
+        if(displayedPosition.y <  cam.position.y){
+            position.y=cam.position.y-displayedPosition.y;
+            dimension.y=cam.position.y;
+            dimension.height=dimension.height-position.y
+        }
+        if(displayedPosition.x+this._cachCanvas.width>cam.position.x+cam.dimensions.width){
+            dimension.width=this._cachCanvas.width-((displayedPosition.x+this._cachCanvas.width)-(cam.position.x+cam.dimensions.width));
+        }
+        if(displayedPosition.y+this._cachCanvas.height>cam.position.y+cam.dimensions.height){
+            dimension.height=this._cachCanvas.height-((displayedPosition.y+this._cachCanvas.height)-(cam.position.y+cam.dimensions.height));
+        }
         this.#update(displayedPosition,cam)
-        cam.ctx.drawImage(this._cachCanvas,displayedPosition.x,displayedPosition.y)
+        cam.ctx.drawImage(this._cachCanvas,position.x,position.y,dimension.width,dimension.height,
+            dimension.x,dimension.y,dimension.width,dimension.height)
     }
     #update(displayedPosition,cam){
         const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
@@ -92,6 +123,33 @@ class Gadget {
         if(inset.length){
             inset.forEach((boxShadow)=>this.#drawInsetBoxShadow(ctx,boxShadow,{x:startX,y:startY}))
         }
+        this.#drawGadgetText(ctx,startX,startY);
+    }
+    #drawGadgetText(ctx,x,y){
+        if(this.#value === '' || !this.#value)
+            return;
+        ctx.font = this.#textInfos.font;
+        ctx.textAlign = this.#textInfos.align;
+        ctx.textBaseline = this.#textInfos.baseline;
+        ctx.direction = this.#textInfos.direction;
+        ctx.fillStyle = this.#drawInfos.color;
+        ctx.strokeStyle = this.#drawInfos.color;
+        const metric = ctx.measureText(this.#value)
+        switch(this.#textInfos.align){
+            //'start','end','left','right' or 'center'
+            case 'end':
+            case 'right':
+                x+=this.#dimension.width;
+                y+=metric.emHeightAscent;
+                break;
+            case 'center':
+                x+=this.#dimension.width/2;
+                y+=metric.emHeightAscent/2+this.#dimension.height/2;
+                break;
+            default:
+            y+=metric.emHeightAscent;
+        }
+        ctx.fillText(this.#value,x,y,this.#dimension.width)
     }
     #drawBoxShadow(ctx, boxShadow,offset={x:0,y:0}) {
         const x = boxShadow.offsetX >= 0? boxShadow.offsetX+offset.x : 0+offset.x;
@@ -284,6 +342,43 @@ class Gadget {
         }
         this.#updateCachCanvas();
     }
+    set value(value){
+        this.#value = value;
+    }
+    set font(font){
+        if(typeof font !== "string")
+            throw new Error('Invalid font, must be a string');
+        this.#textInfos.font=font;
+    }
+    set textAlign(align){
+        if(align!=='start' && align!=='end' && align !=='left' && align !=='right' && align!=='center')
+            throw new Error("Invalid value, textAligne must be 'start','end','left','right' or 'center'");
+        this.#textInfos.align = align;
+    }
+    set textBaseline(baseline){
+        if(baseline!=='top' && baseline!=='hanging' && baseline!=='middle' && baseline!=='alphabetic' && baseline!=='ideographoc' && baseline!=='bottom')
+            throw new Error("Invalid value, textBaseline must be 'top','hanging','middle','alphabetic','ideographic' or 'bottom'");
+        this.#textInfos.baseline = baseline;
+    }
+    set textDirection(direction){
+        if(direction!=='ltr' && direction!=='rtl' && direction!=='inherit')
+            throw new Error("Invalid value, textDirection must be 'ltr','rtl' or 'inherit'");
+        this.#textInfos.direction = direction;
+    }
+    set transition(transition){
+        if(!Array.isArray(transition))
+            throw new Error('Invalid value, transition must be an array');
+        const [name, duration=0, timingFunction='linear', delay=0] = transition;
+        if(typeof name !== 'string')
+            throw new Error('Invalid value, transition name must be a string');
+        if(isNaN(duration))
+            throw new Error('Invalid value, transition duration must be a number');
+        if(timingFunction !== 'linear' && timingFunction !== 'ease' && timingFunction !== 'ease-in' && timingFunction !== 'ease-out' && timingFunction !== 'ease-in-out')
+            throw new Error('Invalid value, transition timing function must be "linear","ease","ease-in","ease-out" or "ease-in-out"');
+        if(isNaN(delay))
+            throw new Error('Invalid value, transition delay must be a number');
+        this.#transitions.push({name,duration,timingFunction,delay});
+    }
 
     // Getters
     get position(){
@@ -301,6 +396,9 @@ class Gadget {
     get onMouseOver(){
         return this.#onMouseOver;
     }
+    get mouseEnter(){
+        return this.#MouseEnter;
+    }
     get onClick(){
         return this.#onClick;
     }
@@ -315,6 +413,24 @@ class Gadget {
     }
     get boxShadow(){
         return this.#drawInfos.boxShadow;
+    }
+    get value(){
+        return this.#value;
+    }
+    get font(){
+        return this.#textInfos.font;
+    }
+    get textAlign(){
+        return this.#textInfos.align;
+    }
+    get textBaseline(){
+        return this.#textInfos.baseline;
+    }
+    get textDirection(){
+        return this.#textInfos.direction;
+    }
+    get transitions(){
+        return this.#transitions;
     }
 }
 
