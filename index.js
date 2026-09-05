@@ -10,8 +10,15 @@ mainCam.dimensions={width:400, height:400}
 secCam.dimensions={width:100,height:450}
 let skel1, skel2, female1;
 // Sprites loading
-const skel = Sprite.create("./assets/sprites/skeleton.png",true)
-const female = Sprite.create("./assets/sprites/lpcfemalelight.png",true)
+const skel = Sprite.load("./assets/sprites/skeleton.png",true);
+const female = Sprite.load("./assets/sprites/lpcfemalelight.png",true);
+// Create a red rectangle sprite
+const rect = Sprite.create(50,50,false);
+rect.ctx.fillStyle = "red";
+rect.ctx.fillRect(0,0,50,50);
+const rect1 = Entity.create({sprite:rect});
+rect1.position = {x:300,y:300};
+// Create custom methods for the skeleton entity
 const skelStats = {
     life:100,
     takeDamage(damage) {
@@ -21,19 +28,17 @@ const skelStats = {
 };
 
 
-const button = Button.create("test",{width:100,height:50});
-button.position={x:380,y:200}; // target 294
+const button = Button.create("test mais cette ${wave ${shake(2,3,5) fois} ${blink(0,20) un} peut} plus ${wave(2,5,10) long}",{width:200,height:90});
+button.position={x:380,y:200}; // target 194
 button.onMouseEnter=()=>{
-    console.log('mouse enter')
     button.position.x -=4;
-    if(button.position.x > 294 && button.mouseEnter)
+    if(button.position.x > 194 && button.mouseOver)
         requestAnimationFrame(button.onMouseEnter);
-    if(button.position.x < 294) button.position.x = 294;
+    if(button.position.x < 194) button.position.x = 194;
 };
 button.onMouseLeave=()=>{
-    console.log('mouse leave')
     button.position.x +=4;
-    if(button.position.x < 380 && !button.mouseEnter)
+    if(button.position.x < 380 && !button.mouseOver)
         requestAnimationFrame(button.onMouseLeave);
     if(button.position.x > 380) button.position.x = 380;
 };
@@ -41,7 +46,7 @@ button.backgroundColor='#F0F';
 // button.boxShadow=[-6,-5];
 button.textAlign = 'center'
 button.boxShadow=[[-6,-10,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
-button.font = '48px sherif'
+// button.font = '48px sherif'
 button.borderRadius = [10,5,20,0];
 
 Promise.all([skel,female])
@@ -56,7 +61,7 @@ Promise.all([skel,female])
     female.animations.createAnimationFrames(143,150,"walk_right",7);
     skel.animations.setAnimationFrameHitBox("idle",15,49,10,54);
     female.animations.setAnimationFrameHitBox("walk_right",15,49,10,54);
-    skel1 = Entity.create({sprite:skel},[skelStats]);
+    skel1 = Entity.create({sprite:skel},[skelStats]); // add skelStats to the skeleton entity
     skel2 = Entity.create({sprite:skel});
     female1 = Entity.create({sprite:female});
     skel2.scale = 1.5;
@@ -68,7 +73,7 @@ Promise.all([skel,female])
     female1.position = {x:100,y:50};
     female1.physic = true;
     female1.addColisionWithEntity(skel1,(res)=>{skel1.velocity = {x:-skel1.velocity.x,y:-skel1.velocity.y};skel1.takeDamage(5)})
-    mainCam.backgroundImageVelocity = {x:-1,y:1};
+    mainCam.backgroundImageVelocity = {x:1,y:1};
     mainCam.backgroundImageLoop = true;
     mainCam.backgroundImageFillStyle = 'imageSize'
     test()
@@ -84,7 +89,7 @@ function getRandomColor() {
 let clipX = 0;
 let startTime = performance.now();
 function test() {
-    const renderingFrame = performance.now();
+    // const renderingFrame = performance.now();
     //clear the screen before draw again
     ctx.clearRect(0,0,canvas.width,canvas.height)
     mainCam.clear();
@@ -97,6 +102,7 @@ function test() {
     skel1.drawEntity(mainCam);
     female1.update();
     female1.drawEntity(mainCam);
+    rect1.drawEntity(mainCam);
     skel2.update();
     skel2.drawEntity(secCam);
     button.draw(mainCam);

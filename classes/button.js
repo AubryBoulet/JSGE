@@ -8,7 +8,7 @@ class Button extends Gadget {
         super({position,dimension,value})
         backgroundType= backgroundType;
     }
-    static create(value,dimension,position={x:0,y:0},backgroundType='color',src=undefined){
+    static create(value="",dimension,position={x:0,y:0},backgroundType='color',src=undefined){
         if(backgroundType !=='color' && backgroundType !== 'image')
             throw new Error('Invalid backgroundType, must be "color" or "image"');
         const button = new Button({dimension:dimension,position:position,value:value})

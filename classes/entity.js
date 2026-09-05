@@ -65,8 +65,8 @@ class Entity {
             width = this.currentAnimation.frameWidth;
             height = this.currentAnimation.frameHeight;
         } else {
-            width = this.image.width;
-            height = this.image.height;
+            width = this.#sprite.width;
+            height = this.#sprite.height;
             frame = undefined
         }
         const dimension = {

@@ -7,13 +7,24 @@ class Sprite {
     #animations;
     #width;
     #height;
-    constructor(imageSrc,animate) {
-        this.image = new Image();
+    #ctx;
+    constructor(imageSrc,animate,width,height) {
+        if(!imageSrc) {
+            this.image = document.createElement('canvas');
+            this.#ctx = this.image.getContext('2d');
+            this.image.width = width;
+            this.image.height = height;
+            this.imageLoaded = true;
+            this.width = width;
+            this.height = height;
+        }else {
+            this.image = new Image();
+        }
         this.image.src = imageSrc;
         this.animate = animate;
         this.animations = new Animation({image:this.image,row:1,column:1,frameRate:1});
     }
-    static async create(imageSrc,animate) {
+    static async load(imageSrc,animate) {
         const sprite = new Sprite(imageSrc,animate);
         return new Promise((resolve, reject) => {
             sprite.image.onload = () => {
@@ -30,6 +41,9 @@ class Sprite {
             }
         }
     )}
+    static create(width,height,animate) {
+        return new Sprite(null,animate,width,height);
+    }
 
     initSpriteSheet(){
         this.width = this.image.width * this.scale
@@ -74,6 +88,9 @@ class Sprite {
     }
     get height() {
         return this.#height;
+    }
+    get ctx() {
+        return this.#ctx;
     }
 }
 

@@ -1,45 +1,50 @@
 import {Camera} from './camera.js'
+import {Text} from './text.js'
 class Gadget {
     #position = {x:0,y:0,offsetX:0,offsetY:0};
     #dimension = {width:0,height:0};
+    #hitbox = {width:8,height:8};
     static mouseEvent = false;
     static mousePosition={x:0,y:0};
     static shadowCanvas = document.createElement('canvas');
     static shadowCtx = this.shadowCanvas.getContext('2d');
     _cachCanvas;
-    #MouseOver= false;
-    #MouseEnter= false;
+    #mouseOver= false;
     #active= false;
     #onMouseOver;
     #onMouseEnter;
     #onMouseLeave;
     #onClick;
     #drawInfos;
-    #value;
-    #textInfos={
-        font:"24px arial",
-        align:'start',
-        baseline:'alphabetic',
-        direction:'inherit',
-    };
+    #textValue;
     #transitions=[];
 
     constructor({position,dimension,value}) {
         this.position = position;
         this.dimension = dimension;
-        this.value = value;
+        if(value !== ""){
+            this.#textValue = new Text(value,this.#dimension.width,this.#dimension.height);
+        }
         this._cachCanvas = document.createElement('canvas');
         this.#drawInfos = {border: null,boxShadow:null,backgroundColor:"#fff",color:"#000",font:null,borderRadius:null};
         this.#updateCachCanvas();
         this.#setListener();
+    }
+    // updator
+    updateText(){ // Force the text value to update its effects, useful when changing the amplitude or other properties that may affect the text rendering
+        if(this.#textValue){
+            this.#textValue._updateEffect();
+        } else {
+            console.warn('No text value set for this gadget');
+        }
     }
 
     #setListener(){
         if(!Gadget.mouseEvent){
             Gadget.mouseEvent = true;
             document.addEventListener('mousemove',(e)=>{
-                Gadget.mousePosition.x = e.pageX;
-                Gadget.mousePosition.y = e.pageY;
+            Gadget.mousePosition.x = e.pageX;
+            Gadget.mousePosition.y = e.pageY;
             })
         }
     }
@@ -67,21 +72,32 @@ class Gadget {
         if(displayedPosition.y+this._cachCanvas.height>cam.position.y+cam.dimensions.height){
             dimension.height=this._cachCanvas.height-((displayedPosition.y+this._cachCanvas.height)-(cam.position.y+cam.dimensions.height));
         }
+        if(this.#textValue){
+            if(this.#textValue._update()){
+                this.#updateCachCanvas();
+            }
+        }
         this.#update(displayedPosition,cam)
         cam.ctx.drawImage(this._cachCanvas,position.x,position.y,dimension.width,dimension.height,
             dimension.x,dimension.y,dimension.width,dimension.height)
     }
     #update(displayedPosition,cam){
         const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
-        if(mouseX > displayedPosition.x && 
-            mouseX < displayedPosition.x+this.dimension.width  &&
-            mouseY > displayedPosition.y && 
-            mouseY < displayedPosition.y+this.dimension.height ){
-            if(!this.MouseEnter){this.MouseEnter=true;this.#mouseEnter(cam)}   
+        if(mouseX >= displayedPosition.x-this.#hitbox.width && 
+            mouseX <= displayedPosition.x+this.dimension.width+(this.#hitbox.width*2)  &&
+            mouseY >= displayedPosition.y-this.#hitbox.height && 
+            mouseY <= displayedPosition.y+this.dimension.height+(this.#hitbox.height*2)){
+            if(!this.#mouseOver&&!this.#isMouseOutOfCamera(cam)){this.#mouseOver=true;this.#mouseEnter(cam)}   
         } else{
-            if(this.MouseEnter){this.MouseEnter=false;this.#mouseLeave(cam)}
+            if(this.#mouseOver){this.#mouseOver=false;this.#mouseLeave(cam)}
         }
     }
+    #isMouseOutOfCamera(cam){
+        const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
+        return mouseX <= cam.position.x || mouseX >= cam.position.x+cam.dimensions.width+8 ||
+            mouseY <= cam.position.y || mouseY >= cam.position.y+cam.dimensions.height
+    }
+        
     #updateCachCanvas(){
         let width = this.#dimension.width, height = this.#dimension.height
         if(this.#drawInfos.boxShadow){
@@ -126,30 +142,9 @@ class Gadget {
         this.#drawGadgetText(ctx,startX,startY);
     }
     #drawGadgetText(ctx,x,y){
-        if(this.#value === '' || !this.#value)
+        if(!this.#textValue)
             return;
-        ctx.font = this.#textInfos.font;
-        ctx.textAlign = this.#textInfos.align;
-        ctx.textBaseline = this.#textInfos.baseline;
-        ctx.direction = this.#textInfos.direction;
-        ctx.fillStyle = this.#drawInfos.color;
-        ctx.strokeStyle = this.#drawInfos.color;
-        const metric = ctx.measureText(this.#value)
-        switch(this.#textInfos.align){
-            //'start','end','left','right' or 'center'
-            case 'end':
-            case 'right':
-                x+=this.#dimension.width;
-                y+=metric.emHeightAscent;
-                break;
-            case 'center':
-                x+=this.#dimension.width/2;
-                y+=metric.emHeightAscent/2+this.#dimension.height/2;
-                break;
-            default:
-            y+=metric.emHeightAscent;
-        }
-        ctx.fillText(this.#value,x,y,this.#dimension.width)
+        ctx.drawImage(this.#textValue.canvas,x,y,this.#textValue.canvas.width,this.#textValue.canvas.height)
     }
     #drawBoxShadow(ctx, boxShadow,offset={x:0,y:0}) {
         const x = boxShadow.offsetX >= 0? boxShadow.offsetX+offset.x : 0+offset.x;
@@ -209,7 +204,7 @@ class Gadget {
         if(typeof this.onMouseLeave === 'function')
             this.onMouseLeave(cam);
     }
-    #mouseOver(cam){
+    #mouseIsOver(cam){
         if(typeof this.onMouseOver === 'function')
             this.onMouseOver(cam);
     }
@@ -343,27 +338,53 @@ class Gadget {
         this.#updateCachCanvas();
     }
     set value(value){
-        this.#value = value;
+        if(typeof value !== "string")
+            throw new Error('Invalid value, must be a string');
+        if(this.#textValue){
+            this.#textValue.value = value;
+        } else {
+            this.#textValue = new Text(value,this.#dimension.width,this.#dimension.height);
+        }
     }
     set font(font){
         if(typeof font !== "string")
             throw new Error('Invalid font, must be a string');
-        this.#textInfos.font=font;
+        if(this.#textValue){
+            this.#textValue.font = font;
+        } else {
+            this.#textValue = new Text("",this.#dimension.width,this.#dimension.height);
+            this.#textValue.font = font;
+        }
     }
     set textAlign(align){
         if(align!=='start' && align!=='end' && align !=='left' && align !=='right' && align!=='center')
             throw new Error("Invalid value, textAligne must be 'start','end','left','right' or 'center'");
-        this.#textInfos.align = align;
+        if(this.#textValue){
+            this.#textValue.textAlign = align;
+        } else {
+            this.#textValue = new Text("",this.#dimension.width,this.#dimension.height);
+            this.#textValue.textAlign = align;
+        }
     }
     set textBaseline(baseline){
         if(baseline!=='top' && baseline!=='hanging' && baseline!=='middle' && baseline!=='alphabetic' && baseline!=='ideographoc' && baseline!=='bottom')
             throw new Error("Invalid value, textBaseline must be 'top','hanging','middle','alphabetic','ideographic' or 'bottom'");
-        this.#textInfos.baseline = baseline;
+        if(this.#textValue){
+            this.#textValue.textBaseline = baseline;
+        } else {
+            this.#textValue = new Text("",this.#dimension.width,this.#dimension.height);
+            this.#textValue.textBaseline = baseline;
+        }
     }
     set textDirection(direction){
         if(direction!=='ltr' && direction!=='rtl' && direction!=='inherit')
             throw new Error("Invalid value, textDirection must be 'ltr','rtl' or 'inherit'");
-        this.#textInfos.direction = direction;
+        if(this.#textValue){
+            this.#textValue.textDirection = direction;
+        } else {
+            this.#textValue = new Text("",this.#dimension.width,this.#dimension.height);
+            this.#textValue.textDirection = direction;
+        }
     }
     set transition(transition){
         if(!Array.isArray(transition))
@@ -396,8 +417,8 @@ class Gadget {
     get onMouseOver(){
         return this.#onMouseOver;
     }
-    get mouseEnter(){
-        return this.#MouseEnter;
+    get mouseOver(){
+        return this.#mouseOver;
     }
     get onClick(){
         return this.#onClick;
@@ -415,19 +436,19 @@ class Gadget {
         return this.#drawInfos.boxShadow;
     }
     get value(){
-        return this.#value;
+        return this.#textValue.value;
     }
     get font(){
-        return this.#textInfos.font;
+        return this.#textValue.font;
     }
     get textAlign(){
-        return this.#textInfos.align;
+        return this.#textValue.align;
     }
     get textBaseline(){
-        return this.#textInfos.baseline;
+        return this.#textValue.baseline;
     }
     get textDirection(){
-        return this.#textInfos.direction;
+        return this.#textValue.direction;
     }
     get transitions(){
         return this.#transitions;
