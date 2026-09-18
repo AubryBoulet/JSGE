@@ -8,6 +8,7 @@ class Gadget {
     static mousePosition={x:0,y:0};
     static shadowCanvas = document.createElement('canvas');
     static shadowCtx = this.shadowCanvas.getContext('2d');
+    static gadgets = [];
     _cachCanvas;
     #mouseOver= false;
     #active= false;
@@ -27,8 +28,13 @@ class Gadget {
         }
         this._cachCanvas = document.createElement('canvas');
         this.#drawInfos = {border: null,boxShadow:null,backgroundColor:"#fff",color:"#000",font:null,borderRadius:null};
+        Gadget.gadgets.push(this)
         this.#updateCachCanvas();
-        this.#setListener();
+        this.#setListeners();
+    }
+    addTextGradient(name,gradient){
+        if (this.#textValue)
+            this.#textValue.addGradient(name,gradient);
     }
     // updator
     updateText(){ // Force the text value to update its effects, useful when changing the amplitude or other properties that may affect the text rendering
@@ -39,21 +45,45 @@ class Gadget {
         }
     }
 
-    #setListener(){
+    #setListeners(){
         if(!Gadget.mouseEvent){
             Gadget.mouseEvent = true;
             document.addEventListener('mousemove',(e)=>{
             Gadget.mousePosition.x = e.pageX;
             Gadget.mousePosition.y = e.pageY;
             })
+            document.addEventListener('mousedown',()=>{
+                Gadget.gadgets.some((gadget)=>{
+                    if(gadget.#mouseOver){
+                        gadget.#active=true;
+                        return true;
+                    };
+                })
+            })
+            document.addEventListener('mouseup',()=>{
+                Gadget.gadgets.some((gadget)=>{
+                    if(gadget.#active){
+                        gadget.#active = false;
+                        return true;
+                    };
+                })
+            })
+            document.addEventListener('click',()=>{
+                Gadget.gadgets.some((gadget)=>{
+                    if(gadget.#mouseOver){
+                        gadget.#mouseClick();
+                        return true;
+                    };
+                })
+            })
         }
     }
     draw(cam){
-        if(!cam instanceof Camera) throw new Error('Invalide camera object in ',cam);
-        const displayedPosition = {x:this.position.x+cam.position.x-this.#position.offsetX,y:this.position.y+cam.position.y-this.#position.offsetY}
+        const displayedPosition = {x:this.position.x+cam.position.x-(this.#position.offsetX||0),y:this.position.y+cam.position.y-(this.#position.offsetY||0)}
         if(displayedPosition.x > cam.dimensions.width+cam.position.x || displayedPosition.x + this._cachCanvas.width <= cam.position.x ||
             displayedPosition.y > cam.dimensions.height+cam.position.y || displayedPosition.y + this._cachCanvas.height <= cam.position.y)
             return;
+            if(!cam instanceof Camera) throw new Error('Invalide camera object in ',cam);
         const position = {x:0,y:0};
         const dimension = {x:displayedPosition.x,y:displayedPosition.y,width:this._cachCanvas.width,height:this._cachCanvas.height};
         if(displayedPosition.x < cam.position.x){
@@ -91,6 +121,7 @@ class Gadget {
         } else{
             if(this.#mouseOver){this.#mouseOver=false;this.#mouseLeave(cam)}
         }
+        if(this.#mouseOver){this.#mouseIsOver(cam)}
     }
     #isMouseOutOfCamera(cam){
         const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
@@ -164,7 +195,6 @@ class Gadget {
         };
     }
     #drawInsetBoxShadow(ctx,boxShadow,offset={x:0,y:0}){
-        console.log(boxShadow)
         ctx.fillStyle = boxShadow.color;
         const wx = boxShadow.offsetX >= 0 ? offset.x:this.#dimension.width+-boxShadow.offsetX;
         const hy = boxShadow.offsetY >= 0 ? offset.y:this.#dimension.height-boxShadow.offsetY;

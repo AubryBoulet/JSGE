@@ -8,6 +8,7 @@ class Text {
         color:'black',
     };
     #value="";
+    #originalValue="";
     #canvas;
     #ctx;
     #width;
@@ -19,10 +20,18 @@ class Text {
         speed:3, // Amount of pixels the text will move per update
         duration:0, // Duration of the effect in seconds, 0 for infinite
     };
+    #gradientRegistry = new Map() // Registry for gradient effects
+    static effectList=[
+        "wave",
+        "shake",
+        "blink",
+        "grad",
+    ]
     #updateEffect=false;
     static motionedEffects = ["wave","shake"];
     constructor(value,width,height){
         this.#value = value;
+        this.#originalValue = value;
         this.#canvas = document.createElement('canvas');
         this.#ctx = this.#canvas.getContext('2d');
         this.#width = width;
@@ -32,8 +41,15 @@ class Text {
         this.#updateEffect = true;
         this.#updateCanvas();
     }
+    // Public methodes
+    addGradient(name,gradient){
+        this.#gradientRegistry.set(name,gradient);
+    }
+
+    // Private methodes
     _updateEffect(){ // Force the recalculation of the text effects
         this.#updateEffect = true;
+        this.#value = this.#originalValue
         this.#updateCanvas();
     }
     _update(){ // Check if the text effects need to be updated, useful for animations
@@ -85,63 +101,74 @@ class Text {
             this.#ctx.textAlign = 'left'; // Set textAlign to 'left' for individual word rendering
             this.#drawTextEffect(x,y,offsetY,offsetX,line,i,textMetrics,wordIndex,words);
         } else {
-            this.#ctx.fillStyle=this.#textInfos.color;
             this.#ctx.textAlign = this.#textInfos.align;
             this.#ctx.fillText(line.str,x,y+i*textMetrics.emHeightAscent+this.#textInfos.lineHeight*i+offsetY);
         }
     }
     #drawTextEffect(x,y,offsetY,offsetX,line,i,textMetrics,wordIndex,words){
-        const effects = this.#textEffects.filter((effect)=>effect.startIndex >= wordIndex && effect.endIndex < wordIndex+words.length);
+        const effects = this.#textEffects.filter((effect) => {
+            const wordEnd = wordIndex + words.length - 1;
+            return (
+                (effect.startIndex >= wordIndex && effect.startIndex <= wordEnd) || // effect start in words 
+                (effect.endIndex >= wordIndex && effect.endIndex <= wordEnd) ||     // effect end in words 
+                (effect.startIndex <= wordIndex && effect.endIndex >= wordEnd)    // effect is in words 
+            );
+        });
         for(let j=0;j<line.length;j++){
-            let draw = true;
+            const word = { text: words[j],
+                x: x + offsetX,
+                y: y + i * textMetrics.emHeightAscent + this.#textInfos.lineHeight * i + offsetY,
+                display: true,
+                color: this.#textInfos.color,
+             };
+            // Search for color effect
+            const colorEffect = effects.find((effect)=>(effect.effect === 'color' || effect.effect === 'grad') && wordIndex+j >= effect.startIndex && wordIndex+j <= effect.endIndex);
+            if(colorEffect && colorEffect.active)
+                this.#processColor(colorEffect,word);
             // Search for blink effect
             const blinkEffect = effects.find((effect)=>effect.effect === 'blink' && wordIndex+j >= effect.startIndex && wordIndex+j <= effect.endIndex);
-            if(blinkEffect){
-                if (!this.#processBlinkEffect(blinkEffect,wordIndex+j)){
-                    offsetX+=this.#ctx.measureText(words[j]+" ").width;
-                    // Check if word is in a wave to increase wave index before skiping word rendering
-                    const waveEffect = (effects.find((effect)=>effect.effect === 'wave' && wordIndex+j >= effect.startIndex && wordIndex+j <= effect.endIndex))
-                    if(waveEffect){
-                        waveEffect.data.index += words[j].length+1; // Update the index for the next word
-                    }
-                    continue; // Skip drawing this word if blink effect is off
-                }
+            if(blinkEffect && blinkEffect.active){
+                this.#processBlinkEffect(blinkEffect,word);
             }
             // Search for shake effect
             const shakeEffect = effects.find((effect)=>effect.effect === 'shake' && wordIndex+j >= effect.startIndex && wordIndex+j <= effect.endIndex);
-            if(shakeEffect){
-                this.#processShakeEffect(shakeEffect,wordIndex+j);
-                offsetX += shakeEffect.effectOffset.x;
-                offsetY += shakeEffect.effectOffset.y;
+            if(shakeEffect && shakeEffect.active){
+                this.#processShakeEffect(shakeEffect,word);
             }
             // Search for wave effect
             const waveEffect = effects.find((effect)=>effect.effect === 'wave' && wordIndex+j >= effect.startIndex && wordIndex+j <= effect.endIndex);
-            if(waveEffect){
-                const waveData = this.#processWaveEffect(waveEffect);
-                if(waveData){
-                    // Draw each letter of the word with the corresponding wave offset
-                    const letters = words[j]+' '.split('');
-                    for (let k = waveData.index; k < letters.length+waveData.index; k++) {
-                        const letterOffsetY = waveData.waveOffsets[k];
-                        const letter = letters[k-waveData.index];
-                        this.#ctx.fillText(letter, x + offsetX, y + i * textMetrics.emHeightAscent + this.#textInfos.lineHeight * i + offsetY + letterOffsetY);
-                        offsetX += this.#ctx.measureText(letter).width;
-                    }
-                    waveData.index += letters.length; // Update the index for the next word
+            if(waveEffect && waveEffect.active){
+                this.#processWaveEffect(waveEffect,word);
+            }
+            // Drawing methode
+            if(word.display){
+                if(Array.isArray(word.text)){
+                    if(typeof word.color === 'string' || typeof word.color === 'object')
+                        this.#ctx.fillStyle = word.color;
+                    word.text.forEach((letter, k) => {
+                        const letterOffsetY = word.waveOffsets[k];
+                        if(Array.isArray(word.color))
+                            this.#ctx.fillStyle = word.color[k];
+                        this.#ctx.fillText(letter, word.x, word.y + letterOffsetY||0);
+                        const measure = this.#ctx.measureText(letter).width;
+                        offsetX += measure;
+                        word.x += measure;
+                    });
+                    offsetX += this.#ctx.measureText(' ').width;
+                } else {
+                    this.#ctx.fillStyle = word.color
+                    this.#ctx.fillText(word.text, word.x, word.y);
+                    offsetX += this.#ctx.measureText(word.text + " ").width;
                 }
-                draw = false;
-            }
-            if(draw){
-                this.#ctx.fillText(words[j],x+offsetX,y+i*textMetrics.emHeightAscent+this.#textInfos.lineHeight*i+offsetY);
-                offsetX+=this.#ctx.measureText(words[j]+" ").width;
-            }
-            if (shakeEffect){
-                offsetX -= shakeEffect.effectOffset.x; // Reset offsetX after drawing the word
-                offsetY -= shakeEffect.effectOffset.y; // Reset offsetY after drawing the word
-            }
-            if (waveEffect){
-                offsetY -= waveEffect.effectOffset.y; // Reset offsetY after drawing the word
-                draw = true // Reset draw status
+            } else { // Still increase offsetX even if the word is not displayed
+                if(Array.isArray(word.text)){
+                    word.text.forEach((letter, k) => {
+                        offsetX += this.#ctx.measureText(letter).width;
+                    });
+                    offsetX += this.#ctx.measureText(' ').width;
+                } else {
+                    offsetX += this.#ctx.measureText(word.text + " ").width;
+                }
             }
         }
     }
@@ -178,44 +205,73 @@ class Text {
                 break;
         }
     }
-    #processBlinkEffect(effect){
+    #processColor(effect,word){
+        this.#updateCondition(effect);
+        word.color=effect.color;
+    }
+    #processBlinkEffect(effect,word){
+        if(effect.framePassed === 0){
+            word.display = effect.blinkState; // Set the display state based on the current blink state
+            return;
+        }
         if(this.#updateCondition(effect)){
             effect.blinkState = !effect.blinkState;
             effect.framePassed = 0;
         }
-        return effect.blinkState;
+        word.display = effect.blinkState;
     }
-    #processShakeEffect(effect){
+    #processShakeEffect(effect,word){
+        if(effect.framePassed < effect.frequency){
+            word.x += effect.data.x || 0; // Reset previous shake offset
+            word.y += effect.data.y || 0; // Reset previous shake offset
+            return;
+        }
         if(this.#updateCondition(effect)){
             const x = Math.random() * effect.amplitude * 2 - effect.amplitude; // Random offset between -amplitude and +amplitude
             const y = Math.random() * effect.amplitude * 2 - effect.amplitude; // Random offset between -amplitude and +amplitude
-            effect.effectOffset = {x:x, y:y};
+            effect.data = {x:x, y:y};
             effect.framePassed = 0;
+            word.x += x;
+            word.y += y;
         }
     }
-    #processWaveEffect(effect){
-        if(effect.framePassed === 0)
-            return effect.data; // Return the existing effect data if no frames have passed
+    #processWaveEffect(effect,word){
         if(effect.startTime === 0){
             effect.startTime = performance.now(); // Force the start time to be use ase frequency
         }
-        const elapsedTime = (performance.now() - effect.startTime) / 1000; // Convert to seconds
-        // Get all the words that are affected by the wave effect
-        const waveWords = this.#value.split(' ').slice(effect.startIndex, effect.endIndex + 1).join(' '); // Join the words into a single string
-        // Make an array of every letter in the waveWords string
-        const letters = waveWords.split('');
-        // Calculate the wave offset for each letter based on its index and the elapsed time
-        const waveOffsets = letters.map((letter, index) => {
-            const phase = (index / letters.length) * Math.PI * 2; // Phase shift based on letter index
-            const sinOffsetY = Math.sin(elapsedTime * effect.speed + phase) * effect.amplitude; // Calculate vertical offset
-            return sinOffsetY;
-        });
-        // Set the effectOffset to the average of the waveOffsets for the entire word
-        const averageOffsetY = waveOffsets.reduce((sum, offset) => sum + offset, 0) / waveOffsets.length;
-        effect.effectOffset = {x:0, y:averageOffsetY};
-        effect.framePassed = 0;
-        effect.data = {letters: letters, waveOffsets: waveOffsets,index:0}; // Store the letters and their corresponding wave offsets in the effect data
-        return effect.data; // Return the effect data for use in drawing the letters
+        if(effect.framePassed < effect.frequency){
+            if(effect.data.letters){ // Find the next word in the wave effect
+                if(effect.data.index === effect.data.letters.length) effect.data.index = -1 // Reset index if last word have been reached
+                let index = effect.data.letters.findIndex((letter,i) => (letter === " " && i > effect.data.index)); // Find the index of the first space in the letters array
+                if(index === -1)
+                    index = effect.data.letters.length
+                word.text = effect.data.letters.slice(effect.data.index+1,index); // Reset the word text to the original letters
+                if(!word.text[0]) console.log('letters :',effect.data.letters,effect.data.index+1,index)
+                word.waveOffsets = effect.data.waveOffsets.slice(effect.data.index+1,index); // Reset the wave offsets to the original values
+                effect.data.index = index;
+            }
+            return;
+        }
+        if(this.#updateCondition(effect)){
+            const elapsedTime = (performance.now() - effect.startTime) / 1000; // Convert to seconds
+            // Get all the words that are affected by the wave effect
+            const waveWords = this.#value.split(' ').slice(effect.startIndex, effect.endIndex + 1).join(' '); // Join the words into a single string
+            // Make an array of every letter in the waveWords string
+            const letters = waveWords.split('');
+            // Calculate the wave offset for each letter based on its index and the elapsed time
+            const waveOffsets = letters.map((_, index) => {
+                const phase = (index / letters.length) * Math.PI * 2; // Phase shift based on letter index
+                const sinOffsetY = Math.sin(elapsedTime * effect.speed + phase) * effect.amplitude; // Calculate vertical offset
+                return sinOffsetY;
+            });
+            // Store the entire line with y offset
+            effect.framePassed = 0;
+            let index = letters.findIndex((letter) => letter === ' ')
+            if (index === -1) index = letters.length
+            effect.data = {letters: letters, waveOffsets: waveOffsets,index:index}; // Store the letters and their corresponding wave offsets in the effect data
+            word.text = letters.slice(0,effect.data.index); // Update the word text to include the letters affected by the wave effect
+            word.waveOffsets = waveOffsets.slice(0,effect.data.index); // Store the wave offsets in the word object for rendering
+        }
     }
 
     // End process effects
@@ -322,9 +378,17 @@ class Text {
         const endInfo = string.indexOf(')');
         if(startInfo!==-1 && endInfo!==-1){
             const effectName = string.substring(0,startInfo);
-            const effectParams = string.substring(startInfo+1,endInfo).split(',');
+            let color = undefined, effectParams = [];
+            if(effectName === "grad") {
+                color = string.substring(startInfo+1,endInfo);
+                color = this.#gradientRegistry.get(color)
+            }else {
+                effectParams = string.substring(startInfo+1,endInfo).split(',');
+                // Check if effect is in the list, if not set effect as color switch
+                color = Text.effectList.find((val) => val === effectName) ? false : effectName;
+            }
             // effect info order: amplitude, frequency, speed, duration
-            effectList.push({effect:effectName,
+            effectList.push({effect:color?"color":effectName,
                 startIndex:startIndex,
                 amplitude:Text.motionedEffects.find((el)=>el===effectName) ? effectParams[0] ? parseFloat(effectParams[0]) : this.#effectInfos.amplitude : 0,
                 frequency:effectParams[1] ? parseFloat(effectParams[1]) : this.#effectInfos.frequency,
@@ -333,11 +397,14 @@ class Text {
                 framePassed:0,
                 effectOffset:{x:0, y:0},
                 startTime:0,
+                color:color?color:null,
                 active:true,
                 data:{},
             })
         }else{
-            effectList.push({effect:string,
+            // Check if effect is in the list, if not set effect as color switch
+            const color = Text.effectList.find((val) => val === string) ? false : true;
+            effectList.push({effect:color?"color":string,
                 startIndex:startIndex,
                 amplitude:Text.motionedEffects.find((el)=>el===string) ? this.#effectInfos.amplitude : 0,
                 frequency:this.#effectInfos.frequency,
@@ -346,6 +413,7 @@ class Text {
                 framePassed:0,
                 effectOffset:{x:0, y:0},
                 startTime:0,
+                color:color?string:null,
                 active:true,
                 data:{},
             })
@@ -355,6 +423,7 @@ class Text {
     // Setters
     set value(value){
         this.#value = value;
+        this.#originalValue = value;
         this.#updateEffect = true;
         this.#updateCanvas();
     }

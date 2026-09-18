@@ -2,6 +2,7 @@ import { Camera } from "./classes/camera.js";
 import { Sprite } from "./classes/sprites.js";
 import { Entity } from "./classes/entity.js";
 import { Button } from "./classes/button.js";
+import { Transition } from "./classes/transition.js";
 const canvas = document.querySelector("#gameCanvas")
 const ctx = canvas.getContext("2d");
 const mainCam = new Camera({canvas:canvas,position:{x:200,y:50},backgroundImage:'./assets/sprites/test.png'})
@@ -26,25 +27,38 @@ const skelStats = {
         console.log(`life : ${this.life}`)
     }
 };
-
-
-const button = Button.create("test mais cette ${wave ${shake(2,3,5) fois} ${blink(0,20) un} peut} plus ${wave(2,5,10) long}",{width:200,height:90});
-button.position={x:380,y:200}; // target 194
-button.onMouseEnter=()=>{
-    button.position.x -=4;
-    if(button.position.x > 194 && button.mouseOver)
-        requestAnimationFrame(button.onMouseEnter);
-    if(button.position.x < 194) button.position.x = 194;
+// const transi = Transition.create([10,20,'easeInOutQuad',(t)=>{console.log(t)}])
+const gradient = ctx.createLinearGradient(0, 0, 200, 0);
+gradient.addColorStop(0, "green");
+gradient.addColorStop(1, "rgba(0, 255, 0, 0.09)");
+// const button = Button.create("a",{width:200,height:90});
+const button = Button.create("${grad(myGrad) test mais cette} ${wave ${shake(2,5,5) fois} ${blink(0,20) un} ${red peut}} plus ${wave(2,5,10) long}",{width:200,height:90});
+const button2 = Button.create('bouton ${wave(5,2,7) avec ${blink(0,20) effets}}',{width:150,height:60})
+button.addTextGradient("myGrad",gradient);
+button.updateText(); // Update text because gradient is added after button creation
+button.position={x:360,y:200};
+button2.position={x:10,y:10}
+let buttonSlideInTransition;
+button.onMouseEnter=()=>{//easeOutElastic easeOutBounce
+    Transition.delete(buttonSlideInTransition);
+    buttonSlideInTransition = Transition.create([button.position.x,200,'easeOutElastic',(t)=>button.position.x = t,1,0,()=>console.log('finit')])
 };
 button.onMouseLeave=()=>{
-    button.position.x +=4;
-    if(button.position.x < 380 && !button.mouseOver)
-        requestAnimationFrame(button.onMouseLeave);
-    if(button.position.x > 380) button.position.x = 380;
+    Transition.delete(buttonSlideInTransition);
+    buttonSlideInTransition = Transition.create([button.position.x,360,'easeOutBounce',(t)=>button.position.x = t])
 };
+button.onClick=()=>{
+    console.log('clicked button 1')
+}
+button2.onMouseEnter=()=>{
+    console.log('Button 2 mouse enter')
+}
+button2.onClick=()=>{
+    console.log('clicked button 2')
+}
 button.backgroundColor='#F0F';
 // button.boxShadow=[-6,-5];
-button.textAlign = 'center'
+button.textAlign = 'center';
 button.boxShadow=[[-6,-10,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
 // button.font = '48px sherif'
 button.borderRadius = [10,5,20,0];
@@ -106,6 +120,7 @@ function test() {
     skel2.update();
     skel2.drawEntity(secCam);
     button.draw(mainCam);
+    button2.draw(mainCam);
     if(performance.now() - startTime > 2000) {
         startTime = performance.now();
         secCam.backgroundColor = getRandomColor() 
