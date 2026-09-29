@@ -12,6 +12,12 @@ class Camera {
     #backgroundImageDimension;
     #backgroundImageFillStyle;
     #cacheCanvas;
+    #targetFPS;
+    #updateTime=undefined;
+    #newFrame= true;
+    #drawList = [];
+    #scenes = [];
+    #toleranceDelta = 2; // Number of ms the camera will tolerate to consider a frame must be redraw (avoid imprecision of requestAnimationFrame)
     /**
      * Creates a camera object that will be used to render the scene
      * @param {canvas} string - The canvas element that the camera will render to (must be an ID)
@@ -19,9 +25,10 @@ class Camera {
      * @param {dimensions} object - The dimensions of the camera (width,height)
      * @param {backgroundColor} string - The background color of the camera
      * @param {backgroundImage} img - The background image of the camera
+     * @param {targetFPS} int - the number of images per secondes the camera will try to stabilize
      * @returns {void}
      */
-    constructor({canvas,position={x:0,y:0},dimensions={width:100,height:100},backgroundColor=null,backgroundImage=null}) {
+    constructor({canvas,position={x:0,y:0},dimensions={width:100,height:100},backgroundColor=null,backgroundImage=null},targetFPS=60) {
         this.canvas = canvas
         this.ctx = this.canvas.getContext("2d");
         this.position = position;
@@ -38,9 +45,13 @@ class Camera {
             }
         }
         this.backgroundColor = backgroundColor;
+        this.#targetFPS = 1000/targetFPS;
     }
 
+    // Public Methodes
     clear() {
+        if(!this.#isNewFrame())
+            return;
         let x = this.position.x, y = this.position.y, startX = 0, startY = 0, endX = this.dimensions.width, endY = this.dimensions.height
         this.ctx.clearRect(x, y, this.dimensions.width, this.dimensions.height);
         if (this.backgroundType === "color" || this.backgroundType === "image") {
@@ -54,6 +65,71 @@ class Camera {
             }
             this.#renderClear(startX,startY,x,y,endX,endY)
         }
+    }
+    /*** Move the camera to a new position
+     * @param {object} newPosition - The new position of the camera in the scene (x,y)
+     * @param {string} mode - The mode of movement ("relative" or "absolute")
+     */
+    moveCamera(newPosition, mode="relative") {
+        if (mode === "relative") {
+            this.position.x += newPosition.x;
+            this.position.y += newPosition.y;
+        } else if (mode === "absolute") {
+            this.position.x = newPosition.x;
+            this.position.y = newPosition.y;
+        }
+    }
+    drawCameraBorder(color) {
+        const zeroX = this.position.x;
+        const zeroY = this.position.y
+        this.ctx.beginPath();
+        this.ctx.moveTo(zeroX,zeroY);
+        this.ctx.lineTo(this.dimensions.width+zeroX,zeroY);
+        this.ctx.lineTo(this.dimensions.width+zeroX,this.dimensions.height+zeroY);
+        this.ctx.lineTo(zeroX,this.dimensions.height+zeroY);
+        this.ctx.lineTo(zeroX,zeroY);
+        this.ctx.strokeStyle = color
+        this.ctx.stroke()
+    }
+    flipBuffer(){
+        const newFrame = this.#newFrame
+        if(this.#newFrame){
+            if(this.#drawList.length){
+                this.#drawList.sort((a,b)=>a.zOrder-b.zOrder);
+                this.#drawList.forEach((item) => {
+                    item.el._processDraw(this);
+                });
+            }
+            if(this.#scenes.length){
+                this.#scenes.forEach((scene)=>{
+                    scene.forEach((item) =>{
+                        item.el._processDraw(this);
+                    });
+                });
+            }
+            this.#newFrame = false;
+        }
+        this.#scenes.length = 0;
+        this.#drawList.length = 0
+        return newFrame;
+    }
+
+    // Private methodes
+    _addToDrawList(elem,zOrder){
+        this.#drawList.push({el:elem,zOrder:zOrder});
+    }
+    _addToDrawScene(scene){
+        this.#scenes.push(scene);
+    }
+    #isNewFrame(){
+        const time = performance.now()
+        //((now - this.#frameUpdateTime)+1 >=Math.floor(1000/this.#targetFPS)))
+        if(time-(this.#updateTime - this.#toleranceDelta ) >=  this.#targetFPS || this.#updateTime===undefined){
+            this.#updateTime = time;
+            this.#newFrame = true;
+            return true;
+        }
+        return false ;
     }
     #renderClear(startX,startY,x,y,endX,endY){
         if(this.backgroundType === "color" || !this.backgroundImageLoop){
@@ -140,32 +216,6 @@ class Camera {
                 }
             }
         }
-    }
-    /*** Move the camera to a new position
-     * @param {object} newPosition - The new position of the camera in the scene (x,y)
-     * @param {string} mode - The mode of movement ("relative" or "absolute")
-     */
-    moveCamera(newPosition, mode="relative") {
-        if (mode === "relative") {
-            this.position.x += newPosition.x;
-            this.position.y += newPosition.y;
-        } else if (mode === "absolute") {
-            this.position.x = newPosition.x;
-            this.position.y = newPosition.y;
-        }
-    }
-
-    drawCameraBorder(color) {
-        const zeroX = this.position.x;
-        const zeroY = this.position.y
-        this.ctx.beginPath();
-        this.ctx.moveTo(zeroX,zeroY);
-        this.ctx.lineTo(this.dimensions.width+zeroX,zeroY);
-        this.ctx.lineTo(this.dimensions.width+zeroX,this.dimensions.height+zeroY);
-        this.ctx.lineTo(zeroX,this.dimensions.height+zeroY);
-        this.ctx.lineTo(zeroX,zeroY);
-        this.ctx.strokeStyle = color
-        this.ctx.stroke()
     }
 
     //Setters
@@ -259,6 +309,12 @@ class Camera {
             this.#cacheCanvas = cacheCanvas;
         }
     }
+    set targetFPS(targetFPS){
+        this.#targetFPS=1000/targetFPS;
+    }
+    set toleranceDelta(tolerance){
+        this.#toleranceDelta=tolerance;
+    }
 
     //Getters
     get position() {
@@ -299,6 +355,12 @@ class Camera {
     }
     get cacheCanvas() {
         return this.#cacheCanvas;
+    }
+    get targetFPS() {
+        return this.#targetFPS;
+    }
+    get toleranceDelta() {
+        return this.#toleranceDelta;
     }
 }
 export  {Camera};

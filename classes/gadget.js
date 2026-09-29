@@ -32,6 +32,8 @@ class Gadget {
         this.#updateCachCanvas();
         this.#setListeners();
     }
+    
+    //Public methodes
     addTextGradient(name,gradient){
         if (this.#textValue)
             this.#textValue.addGradient(name,gradient);
@@ -44,7 +46,11 @@ class Gadget {
             console.warn('No text value set for this gadget');
         }
     }
+    draw(cam,zOrder=0){
+        cam._addToDrawList(this,zOrder);
+    }
 
+    //Private methodes
     #setListeners(){
         if(!Gadget.mouseEvent){
             Gadget.mouseEvent = true;
@@ -78,7 +84,7 @@ class Gadget {
             })
         }
     }
-    draw(cam){
+    _processDraw(cam){
         const displayedPosition = {x:this.position.x+cam.position.x-(this.#position.offsetX||0),y:this.position.y+cam.position.y-(this.#position.offsetY||0)}
         if(displayedPosition.x > cam.dimensions.width+cam.position.x || displayedPosition.x + this._cachCanvas.width <= cam.position.x ||
             displayedPosition.y > cam.dimensions.height+cam.position.y || displayedPosition.y + this._cachCanvas.height <= cam.position.y)

@@ -1,5 +1,4 @@
 import {Sprite} from './sprites.js'
-import {Animation} from './animation.js'
 import {Camera} from './camera.js'
 import {Element} from './element.js'
 class Entity {
@@ -8,17 +7,18 @@ class Entity {
     #scale;
     #physic;
     #physics = [];
-    #gravity;
+    #gravity=0;
+    #gravityAcceleration=0;
     #acceleration = 0;
     #velocity={x:0,y:0};
-    #targetFPS;
-    #frameUpdateTime;
     #currentAnimation = undefined;
     #currentAcceleration = 0;
+    #currentGravity=0;
     #cliped;
     #flippedX = false;
     #flippedY = false;
-    constructor({sprite,position={x:0,y:0},scale=1,physic=false,gravity=0,acceleration={x:0,y:0},velocity={x:0,y:0},targetFPS=60}){
+    #autoUpdate = true;
+    constructor({sprite,position={x:0,y:0},scale=1,physic=false,gravity=0,gravityAcceleration=1,acceleration={x:0,y:0},velocity={x:0,y:0}}){
         this.sprite = sprite;
         this.position = position;
         this.scale = scale;
@@ -26,14 +26,13 @@ class Entity {
         this.gravity = gravity;
         this.acceleration = acceleration;
         this.velocity = velocity;
-        this.targetFPS = targetFPS;
-        this.frameUpdateTime = undefined;
         this.currentAcceleration = {x:0,y:0};
         this.cliped = undefined;
+        this.#gravityAcceleration=gravityAcceleration;
     }
     /*** 
      * Create a new instance of Entity
-     * @param {object} datas - An object representing the datas information for entity creation, default values are :{sprite,position={x:0,y:0},scale=1,physic=false,gravity=0,acceleration={x:0,y:0},velocity={x:0,y:0},targetFPS=60}
+     * @param {object} datas - An object representing the datas information for entity creation, default values are :{sprite,position={x:0,y:0},scale=1,physic=false,gravity=0,acceleration={x:0,y:0},velocity={x:0,y:0}}
      * @param {Array} assigns - An Array containing object with specific datas (optional). Use this if you want specific information and / or function for this entity (ex: player life, player damage function etc...)
      */
     static create(datas, assigns) {
@@ -43,22 +42,52 @@ class Entity {
         const entity = new Entity(datas);
 
         if (assigns) {
-            assigns.forEach((assign) => {
-                if (typeof assign !== 'object' || assign === null) {
-                    throw new Error(`Error creating entity, ${assign} is not an object!`);
-                }
-                const conflicts = Object.keys(assign).filter(key => entity.hasOwnProperty(key));
-                if (conflicts.length > 0) {
-                    console.warn(`Property conflicts: ${conflicts.join(', ')} already exist in Entity!`);
-                }
-                Object.assign(entity, assign);
-            });
+            entity.assign(assigns);
         }
         return entity;
     }
+    // Public methodes
+    draw(cam,zOrder=0){
+        cam._addToDrawList(this,zOrder);
+    }
+    resetAcceleration(){
+        this.#currentAcceleration = 0;
+    }
+    addColisionWithEntity(entity,onCollision){
+        if(!entity instanceof Entity) throw new Error('Invalid entity !');
+        if(typeof onCollision !== "function" ) throw new Error('Invalid collision, must be a function !');
+        this.#physics.push({entity:entity,onCollision:onCollision});
+    }
+    update() {
+        if(this.sprite.animate && !this.currentAnimation) throw new Error('You must set a currentAnimation first')
+        this.#updatePositionX();
+        this.#updatePositionY();
+        if(this.sprite.animate) this.#updateAnimationFrame();
+        if(this.physic) this.#checkEntityCollision();
+    }
+    assign(assigns, { overwrite = false } = {}) {
+        assigns.forEach((assign) => {
+            if (typeof assign !== 'object' || assign === null) {
+                throw new Error(`Error creating entity, ${assign} is not an object!`);
+            }
 
-    drawEntity(cam){
+            const safeAssign = {};
+            for (const key of Object.keys(assign)) {
+                if (key in this && !overwrite) {
+                    console.warn(`assign: "${key}" already exists, ignored. Use overwrite: true to force.`);
+                } else {
+                    safeAssign[key] = assign[key];
+                }
+            }
+        Object.assign(this, safeAssign);
+        });
+    }
+    
+    // Private methodes
+    _processDraw(cam){
         if(!cam instanceof Camera) throw new Error('Invalide camera object in ',cam);
+        if(this.#autoUpdate)
+            this.update();
         let width, height, frame
         if(this.sprite.animate){
             frame = this.currentAnimation.frames[this.currentAnimation.currentFrame]
@@ -81,9 +110,9 @@ class Entity {
             width: width* this.scale,
             height: height * this.scale
         }
-        this.#draw(cam,dimension,position);
+        this.#drawEntiry(cam,dimension,position);
     }
-    #draw(camera,dimension,position) {
+    #drawEntiry(camera,dimension,position) {
         if(position.x > camera.dimensions.width || position.y > camera.dimensions.height || 
             position.x+dimension.width*this.scale <= 0 || position.y+dimension.height*this.scale <= 0) 
             return
@@ -126,26 +155,15 @@ class Entity {
             ctx.restore();
         }
     }
-    update() {
-        if(this.sprite.animate && !this.currentAnimation) throw new Error('You must set a currentAnimation first')
-        this.#updatePositionX();
-        this.#updatePositionY();
-        if(this.sprite.animate) this.#updateAnimationFrame();
-        if(this.physic) this.#checkEntityCollision();
-    }
     #updateAnimationFrame(){
-        const now = performance.now()
-        if(!this.frameUpdateTime || ((now - this.frameUpdateTime)+1 >=Math.floor(1000/this.targetFPS))){
-            this.frameUpdateTime = now
-                this.currentAnimation.elapsedFrames++;
-                if(this.currentAnimation.elapsedFrames >= this.currentAnimation.frameRate){
-                    this.currentAnimation.currentFrame++;
-                    if(this.currentAnimation.currentFrame >= this.currentAnimation.frames.length){
-                        this.currentAnimation.currentFrame = 0;
-                    }
-                    this.currentAnimation.elapsedFrames = 0;
-            }         
-        }
+        this.currentAnimation.elapsedFrames++;
+        if(this.currentAnimation.elapsedFrames >= this.currentAnimation.frameRate){
+            this.currentAnimation.currentFrame++;
+            if(this.currentAnimation.currentFrame >= this.currentAnimation.frames.length){
+                this.currentAnimation.currentFrame = 0;
+            }
+            this.currentAnimation.elapsedFrames = 0;
+        }     
     }
     #updatePositionX(){
         if(this.velocity.x === 0){
@@ -164,24 +182,57 @@ class Entity {
         }
     }
     #updatePositionY(){
-        if(this.gravity){
-
-        } else {
-            if(this.velocity.y === 0){
-                return
-            }     
-            if(this.acceleration && this.#currentAcceleration < Math.abs(this.velocity.y)){
-                this.#currentAcceleration += this.acceleration;
-                if(this.#currentAcceleration > Math.abs(this.velocity.y)) this.#currentAcceleration = Math.abs(this.velocity.y);
-                if(this.velocity.y > 0){
-                    this.position.y += this.#currentAcceleration;
-                } else {
-                    this.position.y -= this.#currentAcceleration;
-                }
+        if(this.velocity.y === 0 && !this.#gravity){
+            return
+        }     
+        if(this.acceleration && this.#currentAcceleration < Math.abs(this.velocity.y)){
+            this.#currentAcceleration += this.acceleration;
+            if(this.#currentAcceleration > Math.abs(this.velocity.y)) this.#currentAcceleration = Math.abs(this.velocity.y);
+            if(this.velocity.y > 0){
+                this.position.y += this.#currentAcceleration;
             } else {
-                this.position.y += this.velocity.y
+                this.position.y -= this.#currentAcceleration;
             }
-        }  
+        } else {
+            this.position.y += this.velocity.y
+        }
+        if(this.gravity){
+            //Check if colision with element
+            let colide = false;
+            Element.displayedElement.forEach((elem)=>{
+                if(this.position.x+this.#currentAnimation.frameHitBox.startWidth * this.scale < elem.position.x+elem.sprite.width*elem.scale &&
+                    this.position.x+this.#currentAnimation.frameHitBox.endWidth * this.scale > elem.position.x
+                ){
+                    if(this.position.y+this.#currentAnimation.frameHitBox.endHeight * this.scale >= elem.position.y){
+                        if(this.#currentGravity){
+                            this.position.y = elem.position.y - this.currentAnimation.frameHitBox.endHeight * this.scale
+                            this.#currentGravity = 0
+                            if(this.#velocity.y) this.#velocity.y = 0;
+                        }
+                        colide = true;
+                        if(typeof elem.onGravityContact === 'function'){
+                            elem.onGravityContact(elem,this);
+                        }
+                    }
+                }
+            })
+            if(colide === false){
+                if(this.#velocity.y){
+                    if(this.#velocity.y < 0){
+                        this.#velocity.y += this.#currentGravity
+                        if(this.#velocity.y >0){
+                            this.#velocity.y = 0;
+                            this.#currentGravity = 0;
+                        }
+                    }
+                }else {
+                    this.position.y+= this.#currentGravity;
+                }
+                this.#currentGravity+=this.#gravityAcceleration
+                if(this.#currentGravity > this.#gravity)
+                    this.#currentGravity = this.#gravity;
+            }
+        }
     }
     #checkEntityCollision(){
         this.physics.forEach(elem => {
@@ -199,14 +250,6 @@ class Entity {
                 }
             }
         })
-    }
-    resetAcceleration(){
-        this.#currentAcceleration = 0;
-    }
-    addColisionWithEntity(entity,onCollision){
-        if(!entity instanceof Entity) throw new Error('Invalid entity !');
-        if(typeof onCollision !== "function" ) throw new Error('Invalid collision, must be a function !');
-        this.#physics.push({entity:entity,onCollision:onCollision});
     }
 
     // Setters
@@ -234,16 +277,22 @@ class Entity {
     set gravity(gravity){
         this.#gravity = gravity;
     }
+    set gravityAcceleration(acceleration){
+        this.#gravityAcceleration=acceleration;
+    }
     set acceleration(acceleration) {
         this.#acceleration = acceleration;
     }
     set velocity(velocity){
-        if(!(visualViewport instanceof Object) || !('x' in velocity) || !('y' in velocity)) {
+        console.log(velocity)
+        if(!(velocity instanceof Object) || !('x' in velocity) || !('y' in velocity)) {
             throw new Error("Invalid dimensions object, velocity must be {x, y}");
         }
         if(velocity.x === this.#velocity.x && velocity.y === this.#velocity.y) return;
         if(velocity.x === 0 && velocity.y === 0)
-            this.#currentAcceleration = 0
+            this.#currentAcceleration = 0;
+        if(velocity.y !==0)
+            this.#currentGravity=0;
         this.#velocity = velocity;
     }
     set currentAnimation(animationName) {
@@ -262,10 +311,21 @@ class Entity {
         }
     }
     set flippedX(flipped){
-        this.#flippedX = flipped;
+        if(typeof flipped === 'boolean'){
+            this.#flippedX = flipped;
+        } else {throw new Error('Invalid value for flipperX, must be a boolean');}
     }
     set flippedY(flipped){
-        this.#flippedY = flipped;
+        if(typeof flipped === 'boolean'){
+            this.#flippedY = flipped;
+        } else {throw new Error('Invalid value for flippedY, must be a boolean');}
+    }
+    set autoUpdate(autoUpdate){
+        if(typeof autoUpdate === 'boolean'){
+            this.#autoUpdate=autoUpdate;
+        } else {
+            throw new Error('Invalid value for autoUpdate, must be a boolean');
+        }
     }
 
     // Getters
@@ -287,6 +347,9 @@ class Entity {
     get gravity(){
         return this.#gravity;
     }
+    get gravityAcceleration(){
+        return this.#gravityAcceleration;
+    }
     get acceleration(){
         return this.#acceleration;
     }
@@ -301,6 +364,9 @@ class Entity {
     }
     get flippedY(){
         return this.#flippedY;
+    }
+    get autoUpdate(){
+        return this.#autoUpdate;
     }
 }
 
