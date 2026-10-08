@@ -1,4 +1,4 @@
-import {Camera,Sprite,Entity,Button,Transition,Scene,Element} from "./classes/jsge.js";
+import {Camera,Sprite,Entity,Button,Transition,Scene,Element,ParticleEmitter} from "./classes/jsge.js";
 const canvas = document.querySelector("#gameCanvas")
 const ctx = canvas.getContext("2d");
 const mainCam = new Camera({canvas:canvas,position:{x:200,y:50},backgroundImage:'./assets/sprites/test.png'})
@@ -26,7 +26,6 @@ const skelStats = {
             mainScene.remove(this)
     },
     jumping:true,
-    draw(){console.log('zizi')}
 };
 rect1.onGravityContact=((_,et)=>et.jumping = false)
 
@@ -55,14 +54,14 @@ button2.onMouseEnter=()=>{
     console.log('Button 2 mouse enter')
 }
 button2.onClick=()=>{
-    console.log('clicked button 2')
     const x = button2.position.x
     Transition.create([x,x+5,(t,b,c,d)=>{
         const normalizedTime = t / d;
         const amplitude = c * Math.pow(0.9, normalizedTime * d / 1000);
         const oscillation = Math.sin(2 * Math.PI * 10 * (t / 1000));
         return b + amplitude * oscillation;
-    },(t)=>{button2.position.x = x + t},2,0,()=>button2.position.x = x])
+    },(t)=>{button2.position.x = x + t},2,0,()=>{button2.position.x = x;emitter.particleAcceleration = {x:0,y:0};}]);
+    emitter.particleAcceleration = {x:-0.02,y:-0.05};
 }
 button.backgroundColor='#F0F';
 // button.boxShadow=[-6,-5];
@@ -71,6 +70,17 @@ button.boxShadow=[[-6,-10,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
 // button.font = '48px sherif'
 button.borderRadius = [10,5,20,0];
 const mainScene = new Scene();
+const mainLight = mainCam.initMaskLightEngine()
+mainLight.mask = {color:"rgba(0,0,0,0.8)"}
+const lightGrad = mainLight.getRenderCtx().createRadialGradient(200, 100, 0, 200, 100, 150);
+lightGrad.addColorStop(0, "rgb(255, 255, 255)");
+lightGrad.addColorStop(0.7, "rgb(255, 255, 255)");
+lightGrad.addColorStop(1, "rgba(255, 255, 255, 0.3)");
+const light = mainLight.addLightEmitter(200,100,200,lightGrad);
+const light2 = mainLight.addLightEmitter(200,200,50);
+light.angleRange = 90;
+mainCam.onMouseMouve=((mouse) => light.lookAt={x:mouse.x,y:mouse.y})
+// light.color = 'rgba(0,0,0,1)';
 Promise.all([skel,female])
 .then(([skel, female]) => {
     // Entities creation & animations
@@ -106,6 +116,14 @@ Promise.all([skel,female])
     mainScene.add(button2);
     test()
 })
+const emitter = new ParticleEmitter(170, 200);
+emitter.particleSize = {width: 5, height: 5};
+emitter.particleColorRange = {startColor: '#FF0000', endColor: '#FFFF00'};
+emitter.particleLifetime = {min: 500, max: 1000};
+emitter.emissionRate = 50;
+emitter.emissionDuration= 0;
+emitter.startEmission();
+mainScene.add(emitter,3);
 function getRandomColor() {
   let letters = '0123456789ABCDEF';
   let color = '#';

@@ -284,7 +284,6 @@ class Entity {
         this.#acceleration = acceleration;
     }
     set velocity(velocity){
-        console.log(velocity)
         if(!(velocity instanceof Object) || !('x' in velocity) || !('y' in velocity)) {
             throw new Error("Invalid dimensions object, velocity must be {x, y}");
         }

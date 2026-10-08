@@ -6,10 +6,10 @@ import { Button } from "./button.js";
 import { Transition } from "./transition.js";
 import { Scene } from "./scene.js";
 import { Element } from "./element.js";
+import { Text } from "./text.js";
+import { ParticleEmitter } from "./particleEmitter.js";
 
-// Re-export nommés (pour pouvoir faire import { Camera } from "./jsge.js")
-export { Camera, Sprite, Entity, Button, Transition, Scene, Element };
+export { Camera, Sprite, Entity, Button, Transition, Scene, Element, Text, ParticleEmitter };
 
-// OU export par défaut sous forme d'objet regroupant tout
-const JSGE = { Camera, Sprite, Entity, Button, Transition, Scene, Element };
+const JSGE = { Camera, Sprite, Entity, Button, Transition, Scene, Element, Text, ParticleEmitter };
 export default JSGE;

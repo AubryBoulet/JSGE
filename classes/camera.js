@@ -1,3 +1,4 @@
+import { maskLightEngine } from "./maskLightEngine.js";
 class Camera {
     #canvas;
     #ctx;
@@ -18,6 +19,14 @@ class Camera {
     #drawList = [];
     #scenes = [];
     #toleranceDelta = 2; // Number of ms the camera will tolerate to consider a frame must be redraw (avoid imprecision of requestAnimationFrame)
+    #childCamera = false;
+    #childCameras = [];
+    #lightEngine= false;
+    #onMouseMouve
+    static mouseEvent = false;
+    static mousePosition={x:0,y:0};
+    #cameraMousePosition={x:0,y:0}
+    static cameras = []
     /**
      * Creates a camera object that will be used to render the scene
      * @param {canvas} string - The canvas element that the camera will render to (must be an ID)
@@ -46,14 +55,27 @@ class Camera {
         }
         this.backgroundColor = backgroundColor;
         this.#targetFPS = 1000/targetFPS;
+        this.#setListeners();
+        Camera.cameras.push(this);
     }
 
     // Public Methodes
+    static createChildCamera(parentCamera, position, dimensions, backgroundColor=null, backgroundImage=null) {
+        if(position.x + dimensions.width > parentCamera.dimensions.width || position.y + dimensions.height > parentCamera.dimensions.height) {
+            throw new Error("Child camera dimensions exceed parent camera dimensions");
+        }
+        const childCamera = new Camera({canvas: parentCamera.canvas, position: {x: position.x + parentCamera.position.x, y: position.y + parentCamera.position.y}, dimensions, backgroundColor, backgroundImage}, 1000/parentCamera.targetFPS);
+        childCamera.#childCamera = true;
+        parentCamera.#childCameras.push(childCamera);
+        return childCamera;
+    }
     clear() {
         if(!this.#isNewFrame())
             return;
         let x = this.position.x, y = this.position.y, startX = 0, startY = 0, endX = this.dimensions.width, endY = this.dimensions.height
-        this.ctx.clearRect(x, y, this.dimensions.width, this.dimensions.height);
+        if(!this.#childCamera){ // Child cameras will not clear the canvas, they will only draw on top of the parent camera
+            this.ctx.clearRect(x, y, this.dimensions.width, this.dimensions.height);
+        }
         if (this.backgroundType === "color" || this.backgroundType === "image") {
             if(this.backgroundType === "image" && this.backgroundImageVelocity) {
                 this.backgroundImagePosition.x += this.backgroundImageVelocity.x;
@@ -65,11 +87,12 @@ class Camera {
             }
             this.#renderClear(startX,startY,x,y,endX,endY)
         }
+        if(this.#childCameras.length) { // Clear child cameras
+            this.#childCameras.forEach((childCamera)=>{
+                childCamera.clear();
+            });
+        };
     }
-    /*** Move the camera to a new position
-     * @param {object} newPosition - The new position of the camera in the scene (x,y)
-     * @param {string} mode - The mode of movement ("relative" or "absolute")
-     */
     moveCamera(newPosition, mode="relative") {
         if (mode === "relative") {
             this.position.x += newPosition.x;
@@ -94,12 +117,6 @@ class Camera {
     flipBuffer(){
         const newFrame = this.#newFrame
         if(this.#newFrame){
-            if(this.#drawList.length){
-                this.#drawList.sort((a,b)=>a.zOrder-b.zOrder);
-                this.#drawList.forEach((item) => {
-                    item.el._processDraw(this);
-                });
-            }
             if(this.#scenes.length){
                 this.#scenes.forEach((scene)=>{
                     scene.forEach((item) =>{
@@ -107,14 +124,51 @@ class Camera {
                     });
                 });
             }
+            if(this.#drawList.length){
+                this.#drawList.sort((a,b)=>a.zOrder-b.zOrder);
+                this.#drawList.forEach((item) => {
+                    item.el._processDraw(this);
+                });
+            }
             this.#newFrame = false;
         }
         this.#scenes.length = 0;
         this.#drawList.length = 0
+        if(this.#childCameras.length) { // Flip child cameras
+            this.#childCameras.forEach((childCamera)=>{
+                childCamera.flipBuffer();
+            });
+        }
+        if(this.#lightEngine){ // Draw light emitters if the light engine is initialized
+            this.#lightEngine._drawLightEmitters(this);
+        }
         return newFrame;
+    }
+    initMaskLightEngine() {
+        const mask = {x:0,y:0,width:this.dimensions.width,height:this.dimensions.height};
+        this.#lightEngine = new maskLightEngine(mask);
+        return this.#lightEngine;
     }
 
     // Private methodes
+    #setListeners(){
+        if(!Camera.mouseEvent){
+            Camera.mouseEvent = true;
+            document.addEventListener('mousemove',(e)=>{
+            Camera.mousePosition.x = e.pageX;
+            Camera.mousePosition.y = e.pageY;
+            Camera.cameras.forEach((cam) => {
+                if(e.pageX >= cam.position.x && e.pageX <= cam.position.x + cam.dimensions.width && e.pageY >= cam.position.y && e.pageY <= cam.position.y + cam.dimensions.height) {
+                    cam.#cameraMousePosition = {
+                        x:e.pageX - cam.position.x,
+                        y:e.pageY - cam.position.y
+                    }
+                    if(cam.#onMouseMouve) cam.#onMouseMouve(cam.cameraMousePosition);
+                }
+            })
+            })
+        }
+    }
     _addToDrawList(elem,zOrder){
         this.#drawList.push({el:elem,zOrder:zOrder});
     }
@@ -315,6 +369,12 @@ class Camera {
     set toleranceDelta(tolerance){
         this.#toleranceDelta=tolerance;
     }
+    set onMouseMouve(callback){
+        if(typeof callback !== 'function') {
+            throw new Error("Invalid callback, must be a function");
+        }
+        this.#onMouseMouve = callback;
+    }
 
     //Getters
     get position() {
@@ -361,6 +421,12 @@ class Camera {
     }
     get toleranceDelta() {
         return this.#toleranceDelta;
+    }
+    get onMouseMouve(){
+        return this.#onMouseMouve;
+    }
+    get cameraMousePosition(){
+        return this.#cameraMousePosition;
     }
 }
 export  {Camera};

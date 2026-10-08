@@ -5,7 +5,6 @@ class Gadget {
     #dimension = {width:0,height:0};
     #hitbox = {width:8,height:8};
     static mouseEvent = false;
-    static mousePosition={x:0,y:0};
     static shadowCanvas = document.createElement('canvas');
     static shadowCtx = this.shadowCanvas.getContext('2d');
     static gadgets = [];
@@ -54,10 +53,6 @@ class Gadget {
     #setListeners(){
         if(!Gadget.mouseEvent){
             Gadget.mouseEvent = true;
-            document.addEventListener('mousemove',(e)=>{
-            Gadget.mousePosition.x = e.pageX;
-            Gadget.mousePosition.y = e.pageY;
-            })
             document.addEventListener('mousedown',()=>{
                 Gadget.gadgets.some((gadget)=>{
                     if(gadget.#mouseOver){
@@ -118,7 +113,7 @@ class Gadget {
             dimension.x,dimension.y,dimension.width,dimension.height)
     }
     #update(displayedPosition,cam){
-        const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
+        const mouseX = Camera.mousePosition.x, mouseY = Camera.mousePosition.y
         if(mouseX >= displayedPosition.x-this.#hitbox.width && 
             mouseX <= displayedPosition.x+this.dimension.width+(this.#hitbox.width*2)  &&
             mouseY >= displayedPosition.y-this.#hitbox.height && 
@@ -130,7 +125,7 @@ class Gadget {
         if(this.#mouseOver){this.#mouseIsOver(cam)}
     }
     #isMouseOutOfCamera(cam){
-        const mouseX = Gadget.mousePosition.x, mouseY = Gadget.mousePosition.y
+        const mouseX = Camera.mousePosition.x, mouseY = Camera.mousePosition.y
         return mouseX <= cam.position.x || mouseX >= cam.position.x+cam.dimensions.width+8 ||
             mouseY <= cam.position.y || mouseY >= cam.position.y+cam.dimensions.height
     }
