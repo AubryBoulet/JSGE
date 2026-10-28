@@ -52,27 +52,21 @@ class maskLightEngine {
         renderCtx.clearRect(0, 0, this.#RenderCanvas.width, this.#RenderCanvas.height);
         renderCtx.drawImage(this.#maskCanvas, 0, 0);
         renderCtx.globalCompositeOperation = 'destination-out';
-        for (const emitter of this.#lightEmitters)  {
-            renderCtx.beginPath();
-            if(emitter.angleRange === 360){
-                renderCtx.arc(emitter.x, emitter.y, emitter.radius, 0, 2 * Math.PI);
-            } else {
-                renderCtx.lineTo(emitter.x, emitter.y); // Move to the center of the light source
-                renderCtx.arc(emitter.x, emitter.y, emitter.radius, emitter.lineAngle - (emitter.angleRange/2* Math.PI/180), emitter.lineAngle + (emitter.angleRange/2* Math.PI/180));
-            }
+        for (const emitter of this.#lightEmitters)  { // Make a 'hole' in the mask
+            renderCtx.drawImage(emitter._cachCanvas,0,0,emitter.radius*2,emitter.radius*2,
+                emitter.x-emitter.radius,emitter.y-emitter.radius,emitter.radius*2,emitter.radius*2);
+        }
+        renderCtx.globalCompositeOperation = 'source-over';
+        for (const emitter of this.#lightEmitters){ // Apply the light color filter
             if(emitter.color){
-                renderCtx.fillStyle = emitter.color;
-                renderCtx.fill();
-            } else {
-                renderCtx.fillStyle = 'rgb(0, 0, 0)';
-                renderCtx.fill();
+                renderCtx.drawImage(emitter._cachCanvas,emitter.radius*2,0,emitter.radius*2,emitter.radius*2,
+                    emitter.x-emitter.radius,emitter.y-emitter.radius,emitter.radius*2,emitter.radius*2);
             }
         }
-        renderCtx.globalCompositeOperation = 'source-over'; // Reset to default
+        renderCtx.globalCompositeOperation = 'source-over';
     }
     // Setters
     set mask(value) {
-        console.log("??")
         this.#mask.x = value.x || this.#mask.x;
         this.#mask.y = value.y || this.#mask.y;
         this.#mask.width = value.width || this.#mask.width;

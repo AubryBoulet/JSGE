@@ -71,15 +71,14 @@ button.boxShadow=[[-6,-10,'#FFA',1],[6,5,'rgba(0, 0, 255, 0.61)',3]];
 button.borderRadius = [10,5,20,0];
 const mainScene = new Scene();
 const mainLight = mainCam.initMaskLightEngine()
-mainLight.mask = {color:"rgba(0,0,0,0.8)"}
-const lightGrad = mainLight.getRenderCtx().createRadialGradient(200, 100, 0, 200, 100, 150);
-lightGrad.addColorStop(0, "rgb(255, 255, 255)");
-lightGrad.addColorStop(0.7, "rgb(255, 255, 255)");
-lightGrad.addColorStop(1, "rgba(255, 255, 255, 0.3)");
-const light = mainLight.addLightEmitter(200,100,200,lightGrad);
-const light2 = mainLight.addLightEmitter(200,200,50);
+mainLight.mask = {color:"rgba(0,0,0,0.9)"}
+mainLight.zOrder = 9;
+const light = mainLight.addLightEmitter(200,100,200);
+// light.createGradient(0,180,[[0,'rgba(0,0,0,0)'],[0.6,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,0.7']])
+light.createGradient(150,200,[[0,'rgba(255,0,0,0.1)'],[1,'rgba(255,0,0,0.8)']])
+const light2 = mainLight.addLightEmitter(200,200,50,'rgba(0,0,255,0.2');
 light.angleRange = 90;
-mainCam.onMouseMouve=((mouse) => light.lookAt={x:mouse.x,y:mouse.y})
+mainCam.onMouseMouve=((mouse) => {light.lookAt={x:mouse.x,y:mouse.y}})
 // light.color = 'rgba(0,0,0,1)';
 Promise.all([skel,female])
 .then(([skel, female]) => {
@@ -111,7 +110,7 @@ Promise.all([skel,female])
     // Build main scene
     mainScene.add(skel1,2);
     mainScene.add(female1);
-    mainScene.add(rect1,1);
+    mainScene.add(rect1,10);
     mainScene.add(button);
     mainScene.add(button2);
     test()
@@ -134,8 +133,11 @@ function getRandomColor() {
 }
 // Redering loop
 let startTime = performance.now();
+let fpsTimer = startTime;
+let fpsCounter = 0;
+let fps = 0
 function test() {
-    // const renderingFrame = performance.now();
+    const renderingFrame = performance.now();
     //clear the screen before draw again
     mainCam.clear();
     secCam.clear();
@@ -150,7 +152,17 @@ function test() {
     }
     mainCam.flipBuffer();
     secCam.flipBuffer();
-    // console.log('Frame rending in :',performance.now()-renderingFrame,'ms')
+    ctx.clearRect(0,0,500,50)
+    ctx.font = '24px sherif'
+    ctx.fillStyle = 'black'
+    const time = performance.now()
+    fpsCounter++;
+    if(time - fpsTimer >= 1000){
+        fps = fpsCounter;
+        fpsCounter = 0
+        fpsTimer = time
+    }
+    ctx.fillText(`Frame redering time : ${time-renderingFrame} ms, FPS : ${fps}`,0,30)
     // mainCam.moveCamera({x:skel1.velocity.x,y:skel1.velocity.y},"relative");
     requestAnimationFrame(test)
 }

@@ -115,33 +115,55 @@ class Camera {
         this.ctx.stroke()
     }
     flipBuffer(){
-        const newFrame = this.#newFrame
+        const newFrame = this.#newFrame;
+        const drawAfterLight = [];
         if(this.#newFrame){
             if(this.#scenes.length){
                 this.#scenes.forEach((scene)=>{
                     scene.forEach((item) =>{
-                        item.el._processDraw(this);
+                        if(this.#lightEngine){
+                            if(item.zOrder > this.#lightEngine.zOrder){
+                                drawAfterLight.push(item.el)
+                            } else{
+                                item.el._processDraw(this)
+                            }
+                        }else{
+                            item.el._processDraw(this);
+                        }
                     });
                 });
             }
             if(this.#drawList.length){
                 this.#drawList.sort((a,b)=>a.zOrder-b.zOrder);
                 this.#drawList.forEach((item) => {
-                    item.el._processDraw(this);
+                        if(this.#lightEngine){
+                            if(item.zOrder > this.#lightEngine.zOrder){
+                                drawAfterLight.push(item.el)
+                            } else{
+                                item.el._processDraw(this)
+                            }
+                        }else{
+                            item.el._processDraw(this);
+                        }
                 });
             }
             this.#newFrame = false;
+            if(this.#childCameras.length) { // Flip child cameras
+                this.#childCameras.forEach((childCamera)=>{
+                    childCamera.flipBuffer();
+                });
+            }
+            if(this.#lightEngine){ // Draw light emitters if the light engine is initialized
+                this.#lightEngine._drawLightEmitters(this);
+            }
+            if(drawAfterLight.length){
+                for(const item of drawAfterLight){
+                    item._processDraw(this);
+                }
+            }
         }
         this.#scenes.length = 0;
         this.#drawList.length = 0
-        if(this.#childCameras.length) { // Flip child cameras
-            this.#childCameras.forEach((childCamera)=>{
-                childCamera.flipBuffer();
-            });
-        }
-        if(this.#lightEngine){ // Draw light emitters if the light engine is initialized
-            this.#lightEngine._drawLightEmitters(this);
-        }
         return newFrame;
     }
     initMaskLightEngine() {
@@ -177,7 +199,6 @@ class Camera {
     }
     #isNewFrame(){
         const time = performance.now()
-        //((now - this.#frameUpdateTime)+1 >=Math.floor(1000/this.#targetFPS)))
         if(time-(this.#updateTime - this.#toleranceDelta ) >=  this.#targetFPS || this.#updateTime===undefined){
             this.#updateTime = time;
             this.#newFrame = true;
