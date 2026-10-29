@@ -2,9 +2,9 @@
 
 [![Version](https://img.shields.io/badge/version-0.1-blue.svg)](https://github.com/AubryBoulet/JSGE)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-🌧%20Complete-brightgreen)](https://aubryboulet.github.io/docJSGE/)
-[![JavaScript](https://img.shields.io/badge/javascript-ES6%2B-yellow.svg)]
-[![No Dependencies](https://img.shields.io/badge/dependencies-0%20🌧-lightgrey.svg)]
+[![Documentation](https://img.shields.io/badge/docs-🌧%20Complete-brightgreen)](https://jsge.netlify.app/)
+![JavaScript](https://img.shields.io/badge/javascript-ES6%2B-yellow.svg)
+![No Dependencies](https://img.shields.io/badge/dependencies-0%20🌧-lightgrey.svg)
 
 ---
 
@@ -127,81 +127,84 @@ gameLoop();
 
 The documentation includes:
 
-    📘 Detailed guides for each class
-    🎯 Practical examples with copyable code
-    ⚠️ Important warnings about pitfalls to avoid
-    🔍 Explanations of usage patterns
+   📘 Detailed guides for each class  
+   🎯 Practical examples with copyable code  
+   ⚠️ Important warnings about pitfalls to avoid  
+   🔍 Explanations of usage patterns  
 
 💡 Best Practices & Pitfalls to Avoid
 ✅ DO THIS
 
-    Always use Scenes: Elements MUST be added to a Scene to be drawn. scene.draw(camera) followed by camera.flipBuffer() is MANDATORY.
-    Call flipBuffer() manually: This method is NOT called automatically. You must call it after establishing the draw list.
-    Use clear() to initiate new frame: Calling camera.clear() every frame prevents visual artifacts.
-    Limit light emitters: The light engine uses multiple canvases. Too many lights may impact performance.
+   Always use Scenes: Elements MUST be added to a Scene to be drawn. scene.draw(camera) followed by camera.flipBuffer() is MANDATORY.  
+   Call flipBuffer() manually: This method is NOT called automatically. You must call it after establishing the draw list.  
+   Use clear() to initiate new frame: Calling camera.clear() every frame prevents visual artifacts.  
+   Limit light emitters: The light engine uses multiple canvases. Too many lights may impact performance.   
 
 ❌ AVOID THIS
 
-    Don't use private methods: Methods starting with _ or # are PRIVATE. Incorrect usage can crash the engine.
-    Don't draw without Scene: Entities and Elements do NOT have their own draw functions. They MUST be drawn via a Scene.
-    Don't forget flipBuffer(): Without this call, nothing will be displayed on screen.
-    Don't use moveCamera() for scrolling: This method moves the camera and its content, it is NOT a scrolling solution. A dedicated scrolling method is planned but not yet implemented.
+   Don't use private methods: Methods starting with _ or # are PRIVATE. Incorrect usage can crash the engine.  
+   Don't draw without Scene: Entities and Elements do NOT have their own draw functions. They MUST be drawn via a Scene.  
+   Don't forget flipBuffer(): Without this call, nothing will be displayed on screen.  
+   Don't use moveCamera() for scrolling: This method moves the camera and its content, it is NOT a scrolling solution. A dedicated scrolling method is planned but not yet implemented.  
 
 🤝 Contributing
 
 All contributions are welcome! Here's how you can help:
 🐞 Report a Bug
 
-    Open an [Issue](https://github.com/AubryBoulet/JSGE/issues)
-    Describe the problem with:
-        Steps to reproduce
-        Expected behavior
-        Actual behavior
-        Your browser and version
+   Open an [Issue](https://github.com/AubryBoulet/JSGE/issues)  
+   Describe the problem with:  
+       Steps to reproduce  
+       Expected behavior  
+       Actual behavior  
+       Your browser and version  
 
 💻 Contribute Code
 
-    Fork the project
-    Create a branch (git checkout -b feature/my-feature)
-    Commit your changes (git commit -m "Add my feature")
-    Push to the branch (git push origin feature/my-feature)
-    Open a Pull Request
+   Fork the project
+   Create a branch (git checkout -b feature/my-feature)  
+   Commit your changes (git commit -m "Add my feature")  
+   Push to the branch (git push origin feature/my-feature)  
+   Open a Pull Request  
 
 📝 Improve Documentation
 
-    Fix errors
-    Add examples
-    Translate to other languages
+   Fix errors  
+   Add examples  
+   Translate to other languages  
 
 🗺️ Roadmap
-Version	Planned Features	Status
-0.1	Core engine (Particles, Basic Lighting, Cameras, Scenes)	✅ Current
-0.2	Stabilization & Optimization - Fix bugs based on user feedback. Add multitasking for draw phases on different canvases, then synchronize before final render on camera canvas.	🚧 Planned
-0.3	Advanced collision system, Basic audio support, Spritesheets	⏳ Planned
-0.4	Advanced lighting with raycasting shadows, Particle improvements	⏳ Planned
-1.0	Stable version with full feature set	⏳ Future
+
+| Version | Planned Features | Status |
+| :--- | :--- | :--- |
+| **0.1** | Core engine (Particles, Basic Lighting, Cameras, Scenes) | ✅ Current |
+| **0.2** | Stabilization & Optimization - Fix bugs based on user feedback. Add multitasking for draw phases on different canvases, then synchronize before final render on camera canvas. | 🚧 Planned |
+| **0.3** | Advanced collision system, Basic audio support, Spritesheets | ⏳ Planned |
+| **0.4** | Advanced lighting with raycasting shadows, Particle improvements | ⏳ Planned |
+| **1.0** | Stable version with full feature set | ⏳ Future |
+
 
     Note: This roadmap is flexible and may change based on community feedback and contributions.
 
 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.  
 🙏 Acknowledgments
 
-    To all contributors who will help improve JSGE
-    To the GameDev community for its support
-    To you, for using JSGE!
+   To all contributors who will help improve JSGE  
+   To the GameDev community for its support  
+   To you, for using JSGE!  
 
 📢 Stay in Touch
 
-    GitHub: AubryBoulet/JSGE
-    Documentation: aubryboulet.github.io/docJSGE
-    Questions: Open an Issue
+   GitHub: AubryBoulet/JSGE  
+   Documentation: aubryboulet.github.io/docJSGE  
+   Questions: Open an Issue  
 
 ⚠️ Version 0.1 - Pre-Alpha
 
-    ⚠️ This project is version 0.1 (pre-alpha) and is intended for testing and feedback collection only.
-    All features may change before version 1.0.
-    Use it for prototyping and testing, not for production projects.
+   ⚠️ This project is version 0.1 (pre-alpha) and is intended for testing and feedback collection only.  
+   All features may change before version 1.0.  
+   Use it for prototyping and testing, not for production projects.  
 
 ⭐ If you like JSGE, don't hesitate to ⭐ the project to support it!
