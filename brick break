@@ -1,0 +1,259 @@
+/*** Block breaker sample for JSGE V0.1
+ Simple project "My first game with JSGE"
+ Step by step tutorial how to use JSGE
+ */
+
+ // Import classes from the engine
+ import {Camera,Sprite,Scene,ParticleEmitter,Entity,Text} from "./classes/jsge.js"
+
+ // Get the main canvas 
+ const canvas = document.querySelector("#gameCanvas");
+
+ // Create camera (multiple cameras can be created, for this game one is enouth)
+ const gameCam = new Camera({canvas:canvas,position:{x:0,y:0},dimensions:{width:1000,height:600},backgroundColor:"black"});
+ // Default camera's FPS is set to 60 you can change this target
+ // gameCam.targetFPS = 120
+
+ // ============ Sprite generation section ===============================
+ // Define blocks sprites width and heigh
+ const blockWidth = 50;
+ const blockHeight = 20;
+ // Create sprites 
+ const blueBlock = Sprite.create(blockWidth,blockHeight);
+ const redBlock = Sprite.create(blockWidth,blockHeight);
+ const greenBlock = Sprite.create(blockWidth,blockHeight);
+ const yellowBlock = Sprite.create(blockWidth,blockHeight);
+ const ball = Sprite.create(10,10);
+ const paddle = Sprite.create(100,30);
+
+ // Draw inside the created sprites
+
+ // Set the context color before filling theim
+ blueBlock.ctx.fillStyle = "blue";
+ redBlock.ctx.fillStyle = "red";
+ greenBlock.ctx.fillStyle = "green";
+ yellowBlock.ctx.fillStyle = "yellow";
+ ball.ctx.fillStyle = "white";
+
+ // Fill the sprites's canvas with the standard canvas drawing methodes
+ // (Don't draw the first and last pixel to have a border effect)
+ blueBlock.ctx.fillRect(1,1,blockWidth-1,blockHeight-1);
+ redBlock.ctx.fillRect(1,1,blockWidth-1,blockHeight-1);
+ greenBlock.ctx.fillRect(1,1,blockWidth-1,blockHeight-1);
+ yellowBlock.ctx.fillRect(1,1,blockWidth-1,blockHeight-1);
+ ball.ctx.arc(5,5,5,0,2*Math.PI);
+ ball.ctx.fill();
+
+
+ // Draw the paddle's sprite
+ paddle.ctx.fillStyle = "red";
+ paddle.ctx.fillRect(0,0,10,30);
+ paddle.ctx.fillRect(90,0,10,30);
+ paddle.ctx.fillStyle = "grey";
+ paddle.ctx.fillRect(10,0,80,30);
+ // ============ End of sprite generation section =========================
+
+ // Create a global variable to store if the ball is moving or not, this will help to start the game when the player click on the canvas
+ let ballMoving = false;
+ let score = 0; // Create a score variable to store the score
+ const ballDamage = 1; // Create a variable to store the damage the ball will do to the blocks, this will help to make the game more interesting by changing the damage value
+ const blocksDeltaY = 50 // start generation the blocks to this Y position
+
+ // Creating additional methodes and properties
+ const blockStats = {
+    life : 3,
+    blockColor : undefined,
+    takeDamage(damage) {
+        this.life -= damage // remove life to the block
+        if(this.life > 0){
+            // Place the particle emitter on the impact position (colision between the ball and a block)
+            hitEmitter.x = ballEntity.position.x+5;
+            hitEmitter.y = ballEntity.position.y-5;
+            // Set the particles color to the impacted block
+            hitEmitter.particleColorRange = {startColor : this.blockColor, endColor: this.blockColor}
+            // Tell the particle emitter to start generating particles, it will automaticly stop emitting if emissionDuration is specified
+            hitEmitter.startEmission()
+        } else {
+            destroyEmitter.x = this.position.x + this.sprite.width/2;
+            destroyEmitter.y = this.position.y + this.sprite.height/2;
+            destroyEmitter.particleColorRange = {startColor : this.blockColor, endColor: this.blockColor}
+            destroyEmitter.startEmission()
+            // remove the block from the scene and remove the colision detection with the ball
+            mainScene.remove(this);
+            ballEntity.removeColisionWithEntity(this);
+            // Update the score text value
+            score += 10;
+            scoreText.value = "${wave(5,2,5,1.5) ${white Score: "+score+"}}"; // Add a wave effet of 5px amplitude, 2 frames update frequency, speed factor of 5, 1.5 seconds duration, color white 
+        }
+    }
+ }
+
+ // Generate blocks entities 
+ function generateBlocks(raw,col){
+    const entities = [];
+    for(let i = 0; i < raw; i++){
+        for(let j = 0; j < col; j++){
+            const rnd = Math.floor(Math.random()*4+1); // Generate random number for randomize the block color
+            let color;
+            let block;
+            switch (rnd){
+                case 1:
+                    block = blueBlock;
+                    color = "#0000FF"; // (Color for particle emitter, particle emitter do NOT support stringed color like "blue", use RGB or hex)
+                    break;
+                case 2:
+                    block = redBlock;
+                    color = "#FF0000";
+                    break;
+                case 3:
+                    block = greenBlock;
+                    color = "#00FF00";
+                    break;
+                case 4:
+                    block = yellowBlock;
+                    color = "#FFFF00";
+            };
+            // Generate and save in an array the randomly selected block entity with previously created 'blockStats' methodes and properties
+            entities.push(Entity.create({sprite:block,position:{x:blockWidth*j,y:blocksDeltaY+blockHeight*i}},[blockStats]))
+            // Set the color property to the previously created blockColor variable, this will be used to set the particle emitter color when the block is hit
+            entities[entities.length-1].blockColor = color;
+        }
+    }
+    return entities;
+ }
+
+
+ // Create a particle emitter for creating an impact effect when the ball hit a block
+ const hitEmitter = new ParticleEmitter(0,0);
+ hitEmitter.particleSize = {width:5, height:5};
+ hitEmitter.emissionRate = 50;
+ hitEmitter.emissionDuration= 0.5;
+ hitEmitter.particleAcceleration = {x:0,y:0.05};
+ hitEmitter.particleLifetime = {min: 500, max:1500};
+
+ // Create a particle emitter for creating an impact effect when a block is destroyed
+ const destroyEmitter = new ParticleEmitter(0,0);
+ destroyEmitter.particleSize = {width:5, height:5};
+ destroyEmitter.emissionRate = 100;
+ destroyEmitter.emissionDuration= 1;
+ destroyEmitter.particleAcceleration = {x:0,y:0.05};
+ destroyEmitter.particleLifetime = {min: 500, max:1500};
+ destroyEmitter.particleEmitterAngleRange = {rangeMin:0,rangeMax:360};
+
+ // Generate blocks, ball and paddle entities
+ const blockArray = generateBlocks(4,20);
+ const ballEntity = Entity.create({sprite:ball,position:{x:495,y:550},physic:true});
+ const paddleEntity = Entity.create({sprite:paddle,position:{x:450,y:560}});
+ 
+ // Initialize colision detection for the ball entity, this will allow to detect when the ball hit a block or the paddle
+ ballEntity.addColisionWithArrayOfEntities(blockArray, (block) => { // The colision detection return the entity that the ball hit, in this case a block entity
+    // When the ball hit a block, call the takeDamage method of the block to remove life and trigger the particle emitter
+    block.takeDamage(ballDamage);
+    // Change the ball direction to simulate a bounce effect
+    // The ball will bounce in the opposite direction of the impact, this is a simple way to simulate a bounce effect
+    if(ballEntity.position.x < block.position.x || ballEntity.position.x > block.position.x + block.sprite.width){
+        ballEntity.velocity.x *= -1;
+    } else {
+        ballEntity.velocity.y *= -1;
+    }
+ });
+ ballEntity.addColisionWithEntity(paddleEntity, () => {
+    // When the ball hit the paddle, change the ball direction to simulate a bounce effect
+    ballEntity.velocity.y *= -1;
+    // To make the game more interesting, we will change the ball direction based on where the ball hit the paddle, this will create a simple "angle" effect
+    const paddleCenter = paddleEntity.position.x + paddleEntity.sprite.width/2;
+    const ballCenter = ballEntity.position.x + ballEntity.sprite.width/2;
+    const distanceFromCenter = ballCenter - paddleCenter;
+    const maxDistance = paddleEntity.sprite.width/2;
+    const angle = (distanceFromCenter / maxDistance) * Math.PI/4; // Max angle is 45 degrees
+    ballEntity.velocity.x = Math.sin(angle) * 5; // 5 is the speed of the ball, you can change this value to make the game easier or harder
+ });
+
+ // For paddle movement, we will use the mouse position to move the paddle, this is a simple way to control the paddle
+ // To get the mose position in the camera you can use the cameraMousePosition methode.
+ // To ensure the paddle position is updated only when a new frame is render, we will use the camera's onUpdate event, this event is called when the camera is updated, this is a good place to update the paddle position.
+ gameCam.onUpdate = () => {
+    const mousePosX = gameCam.cameraMousePosition.x;
+    // To slow down the paddle movement, we will use a simple linear interpolation (lerp) to move the paddle towards the mouse position, this will create a smooth movement effect.
+    const lerpFactor = 0.05; // The higher the value, the faster the paddle will move towards the mouse position
+    paddleEntity.position.x += (mousePosX - (paddleEntity.position.x+ paddleEntity.sprite.width/2)) * lerpFactor;
+    // Ensure the paddle doesn't go out of the camera's view
+    if(paddleEntity.position.x < 0) paddleEntity.position.x = 0;
+    if(paddleEntity.position.x > gameCam.dimensions.width - paddleEntity.sprite.width) paddleEntity.position.x = gameCam.dimensions.width - paddleEntity.sprite.width;
+    // If the ball is not moving, we will set the ball position to be on top of the paddle, this will create a simple "start game" effect.
+    if(!ballMoving){
+        ballEntity.position.x = paddleEntity.position.x + paddleEntity.sprite.width/2 - ballEntity.sprite.width/2;
+        ballEntity.position.y = paddleEntity.position.y - ballEntity.sprite.height;
+    } else {
+        // Check if the ball 'hit' the left or right side of the camera, if so, change the ball direction to simulate a bounce effect
+        if(ballEntity.position.x < 0 || ballEntity.position.x > gameCam.dimensions.width - ballEntity.sprite.width){
+            ballEntity.velocity.x *= -1;
+        }
+        // Check if the ball 'hit' the top side of the camera, if so, change the ball direction to simulate a bounce effect
+        if(ballEntity.position.y < 0){
+            ballEntity.velocity.y *= -1;
+        }
+        // Check if the ball 'hit' the bottom side of the camera, if so, reset the game (ball is lost)
+        if(ballEntity.position.y > gameCam.dimensions.height){
+            ballMoving = false;
+            ballEntity.velocity.x = 0;
+            ballEntity.velocity.y = 0;
+        }
+    }
+ }
+
+ // Update the score text and draw it on the camera, this is a simple way to display the score, you can use the text class to create more complex text display.
+ // The postProcess event is called after the camera has finished rendering, it allow you to draw directly on the camera's canvas
+ // USE WITH CARE your drawing opperation are render to the camera's canvas after all the camera's rendering is done, 
+ // this mean that if you draw something on the camera's canvas, it will be render on top of everything else, 
+ // this can be usefull for HUD or UI elements, but can also be a problem if you want to draw something behind the camera's rendering.
+ gameCam.postProcess = () => {
+    scoreText._update(); // Call this method to update the text canvas (usefull if the text value contain effects)
+    gameCam.cameraCtx.drawImage(scoreText.canvas, 10, 10);
+ }
+
+
+ // Create the main scene and add all entities in it, this will help simplify the rendering section and increase performance
+ // If you use scene instead of direct entity drawing, the zOrder is calculate once, with entity direct draw, zOrder is recalculate on every frame.
+ const mainScene = new Scene();
+ // Add the block array to the scene
+ mainScene.addArray(blockArray);
+ // Add the ball, paddle and particle emitters to the scene
+ mainScene.add(ballEntity);
+ mainScene.add(paddleEntity);
+ mainScene.add(hitEmitter,1) // Specifie zOrder to ensure the particles will always be displayed over the blocks (default zOrder is 0)
+ mainScene.add(destroyEmitter,1) // Specifie zOrder to ensure the particles will always be displayed over the blocks (default zOrder is 0)
+ 
+ // Tricky but functional way to display the score text with the text class.
+ const scoreText = new Text("${white Score: "+score+"}", 300,50); // Create a new text whith white color with value, width and height
+
+
+ // Main game loop
+ function mainLoop(){
+    // Clear the camera, essential to avoid visual glitch AND to initialise a new frame, no redraw is possible if you don't
+    gameCam.clear();
+    // Add the scene to the "to draw" list of the gameCam
+    mainScene.draw(gameCam);
+    // Tell the engine that everything is set for this frame, process the frame rendering
+    gameCam.flipBuffer();
+    // Call the mainLoop based on your screen refresh rate (the engine will ensure to respect your camera targeted FPS)
+    requestAnimationFrame(mainLoop)
+ }
+
+ // Call the mainLoop function to initialise the game (Must be call after the camera is created and the scene is set)
+ mainLoop();
+
+ // Add an event listener to the canvas to start the game when the player click on the canvas, this will set the ballMoving variable to true and give the ball a random direction and speed.
+ canvas.addEventListener("click", () => {
+    if(!ballMoving){
+        ballMoving = true;
+        // Give the ball a random direction and speed, this will create a simple "start game" effect.
+        const angle = Math.random() * Math.PI/2 + Math.PI/4; // Random angle between 45 and 135 degrees
+        const speed = 5; // Speed of the ball, you can change this value to make the game easier or harder
+        ballEntity.velocity.x = Math.cos(angle) * speed;
+        ballEntity.velocity.y = -Math.sin(angle) * speed;
+    }
+ });
+
+ 
+
