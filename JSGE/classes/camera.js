@@ -78,7 +78,7 @@ class Camera {
         return childCamera;
     }
     clear() {
-        if(!this.#isNewFrame())
+        if(!this.#isNewFrame() && !this.childCamera)
             return;
         let x = 0, y = 0, startX = 0, startY = 0, endX = this.dimensions.width, endY = this.dimensions.height
         if(!this.#childCamera){ // Child cameras will not clear the canvas, they will only draw on top of the parent camera
