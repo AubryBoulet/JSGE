@@ -166,6 +166,7 @@ class Camera {
             if(this.#childCameras.length) { // Flip child cameras
                 this.#childCameras.forEach((childCamera)=>{
                     childCamera.flipBuffer();
+                    this.cameraCtx.drawImage(childCamera.cameraCanvas,childCamera.position.x,childCamera.position.y);
                 });
             }
             // Process light engine drawing
