@@ -184,8 +184,10 @@ class Camera {
                 this.#postProcess(this);
             }
             // Draw the camera canvas to the main canvas
-            this.ctx.drawImage(this.cameraCanvas, this.position.x, this.position.y);
-            this.#newFrame = false; // Reset newFrame to false to respect frame rate
+            if(this.#childCamera === false) {
+                this.ctx.drawImage(this.cameraCanvas, this.position.x, this.position.y);
+                this.#newFrame = false; // Reset newFrame to false to respect frame rate
+            }
         }
         this.#scenes.length = 0;
         this.#drawList.length = 0
