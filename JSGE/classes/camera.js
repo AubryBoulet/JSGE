@@ -126,7 +126,7 @@ class Camera {
     flipBuffer(){
         const newFrame = this.#newFrame;
         const drawAfterLight = [];
-        if(this.#newFrame){
+        if(this.#newFrame || this.#childCamera){
             // Process onUpdate function
             if(typeof this.#onUpdate === 'function'){
                 this.#onUpdate();
