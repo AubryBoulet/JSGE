@@ -44,7 +44,7 @@ Designed for rapid game prototyping with advanced visual effects, it's perfect f
 
     <!-- Import JSGE from jsDelivr -->
     <script type="module">
-        import { Camera, ParticleEmitter, Scene } from "https://cdn.jsdelivr.net/gh/AubryBoulet/JSGE@0.1/classes/jsge.js";
+        import { Camera, ParticleEmitter, Scene } from "https://cdn.jsdelivr.net/gh/AubryBoulet/JSGE@main/JSGE/jsge.js";
 
         // Your code here
         const canvas = document.getElementById("gameCanvas");
