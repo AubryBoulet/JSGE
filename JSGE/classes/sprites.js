@@ -1,5 +1,4 @@
 import {Animation} from "./animation.js";
-import {Camera} from "./camera.js";
 class Sprite {
     #image;
     #imageLoaded = false;
@@ -46,8 +45,8 @@ class Sprite {
     }
 
     initSpriteSheet(){
-        this.width = this.image.width * this.scale
-        this.height = this.image.height * this.scale
+        this.width = this.image.width;
+        this.height = this.image.height;
     }
 
     // Setters
