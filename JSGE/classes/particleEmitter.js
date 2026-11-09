@@ -14,7 +14,7 @@ class ParticleEmitter {
     #emissionTimer=0
     #isEmitting=false
     #particleEmitterAngleRange={rangeMin:45,rangeMax:90} // The particle range (in degree) between 0 and 360. For example a range of 45 to 90 will only emit particle with an random angle between 45 and 90 degrees.
-    #particleEmitterDirection={x:0,y:-1} // The direction of the particle emitter, this will be used to calculate the angle of the particles emitted. For example a direction of {x:0,y:-1} will emit particles upwards.
+    #particleEmitterDirection={x:0,y:-1} // The direction of the particle emitter, this will be used to calculate the direction of the particles emitted. For example a direction of {x:0,y:-1} will emit particles upwards.
     #particles = [] // Array to hold the particles emitted by this emitter
     #lastEmittedTime = 0 // Time past from the last emitted particle, used to control the emission rate
     #endCallback = () => {} // Callback function to be called when the emission is finished
@@ -66,6 +66,7 @@ class ParticleEmitter {
             return;
         }
         this.#updateEmission(cam);
+        const toRemove = [];
         this.#particles.forEach((particle, index) => {
             particle.x += particle.vx;
             particle.y += particle.vy;
@@ -83,12 +84,16 @@ class ParticleEmitter {
             particle.lifetime -= cam.targetFPS;
             // Remove particle if lifetime is over
             if (particle.lifetime <= 0) {
-                this.#particles.splice(index, 1);
+                toRemove.push(index);
             }
             // Remove particle if it goes out of camera view
             if (particle.x <= 0 || particle.x + this.#particleSize.width >= cam.dimensions.width || particle.y <= 0 || particle.y + this.#particleSize.height >= cam.dimensions.height) {
-                this.#particles.splice(index, 1);
+                toRemove.push(index);
             }
+        });
+        // Remove particles marked for removal
+        toRemove.reverse().forEach((index) => {
+            this.#particles.splice(index, 1);
         });
         this.#drawParticles(cam);
         if(!this.#isEmitting && this.#particles.length === 0) {
