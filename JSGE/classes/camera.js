@@ -80,7 +80,6 @@ class Camera {
     clear() {
         if(!this.#isNewFrame() && !this.childCamera)
             return;
-        console.log("Clearing camera background")
         let x = 0, y = 0, startX = 0, startY = 0, endX = this.dimensions.width, endY = this.dimensions.height
         if(!this.#childCamera){ // Child cameras will not clear the canvas, they will only draw on top of the parent camera
             this.ctx.clearRect(x, y, this.dimensions.width, this.dimensions.height);
@@ -167,8 +166,6 @@ class Camera {
             if(this.#childCameras.length) { // Flip child cameras
                 this.#childCameras.forEach((childCamera)=>{
                     childCamera.flipBuffer();
-                    console.log("drawing child camera to the main camera at position :",childCamera.position.x,childCamera.position.y)
-                    this.cameraCtx.drawImage(childCamera.cameraCanvas,childCamera.position.x,childCamera.position.y);
                 });
             }
             // Process light engine drawing
@@ -180,6 +177,11 @@ class Camera {
                 for(const item of drawAfterLight){
                     item._processDraw(this);
                 }
+            }
+            if(this.#childCameras.length){ // Draw the childCamera to the main camera's canvas
+                this.#childCameras.forEach((childCamera)=>{
+                    this.cameraCtx.drawImage(childCamera.cameraCanvas,childCamera.position.x,childCamera.position.y);
+                });
             }
             // Process postProcess function
             if(this.#postProcess && typeof this.#postProcess === 'function'){
