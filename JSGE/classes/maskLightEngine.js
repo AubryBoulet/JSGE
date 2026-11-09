@@ -8,7 +8,7 @@ class maskLightEngine {
         color:'rgba(0,0,0,1)'
     }
     #lightEmitters = [];
-    #zIndex = 999;
+    #zOrder = 999;
     #maskCanvas = document.createElement('canvas');
     #RenderCanvas = document.createElement('canvas');
     constructor(mask) {
@@ -76,15 +76,15 @@ class maskLightEngine {
         this.#maskCanvas.height = this.#mask.height;
         this.#updateMaskCanvas();
     }
-    set zIndex(value) {
-        this.#zIndex = value;
+    set zOrder(value) {
+        this.#zOrder = value;
     }
     // Getters
     get mask() {
         return this.#mask;
     }
-    get zIndex() {
-        return this.#zIndex;
+    get zOrder() {
+        return this.#zOrder;
     }
 }
 
