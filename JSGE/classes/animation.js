@@ -58,24 +58,24 @@ class Animation {
      * @returns {void}
      ***/
     deleteAnimationFrames(animationName){
-        this.animationFrames = this.animationFrames.filter(animation => animation.animationName !== animationName);
+        this.#animationFrames = this.#animationFrames.filter(animation => animation.animationName !== animationName);
     }
     /***
      * Updates the animation frame based on the elapsed time
      * @returns {void}
      ***/
-    updateAnimationFrame(){
-        if(this.currentAnimation){
-            this.currentAnimation.elapsedFrames++;
-            if(this.currentAnimation.elapsedFrames >= this.currentAnimation.frameRate){
-                this.currentAnimation.currentFrame++;
-                if(this.currentAnimation.currentFrame >= this.currentAnimation.frames.length){
-                    this.currentAnimation.currentFrame = 0;
-                }
-                this.currentAnimation.elapsedFrames = 0;
-            }
-        }
-    }
+    // updateAnimationFrame(){
+    //     if(this.currentAnimation){
+    //         this.currentAnimation.elapsedFrames++;
+    //         if(this.currentAnimation.elapsedFrames >= this.currentAnimation.frameRate){
+    //             this.currentAnimation.currentFrame++;
+    //             if(this.currentAnimation.currentFrame >= this.currentAnimation.frames.length){
+    //                 this.currentAnimation.currentFrame = 0;
+    //             }
+    //             this.currentAnimation.elapsedFrames = 0;
+    //         }
+    //     }
+    // }
     getAnimationFrame(animationName){
         const animation = structuredClone(this.#animationFrames.find(animation => animation.animationName === animationName));
         if(animation) {
