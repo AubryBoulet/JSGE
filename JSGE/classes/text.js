@@ -20,6 +20,7 @@ class Text {
         speed:3, // Amount of pixels the text will move per update
         duration:0, // Duration of the effect in seconds, 0 for infinite
     };
+    #forceUpdate=false; // Force the_update() function to return true, useful for internal call like gadget class.
     #gradientRegistry = new Map() // Registry for gradient effects
     static effectList=[
         "wave",
@@ -53,6 +54,10 @@ class Text {
         this.#updateCanvas();
     }
     _update(){ // Check if the text effects need to be updated, useful for animations
+        if(this.#forceUpdate){ // Useful for internal call only, like gadget class, to force the update of the canvas
+            this.#forceUpdate = false;
+            return true;
+        };
         if(this.#textEffects.length>0){
             let redrawNeeded = false;
             this.#textEffects.forEach((effect)=>{
@@ -84,6 +89,7 @@ class Text {
             this.#drawLines(x,y,offsetY,lines[i],i,textMetrics,wordIndex);
             wordIndex += lines[i].length;
         }
+        this.#forceUpdate = true;
     }
     #drawLines(x,y,offsetY,line,i,textMetrics,wordIndex){
         this.#ctx.font = this.#textInfos.font;
@@ -333,46 +339,6 @@ class Text {
         lines.push({str:currentLine.trim(),offset:currentOffset,effect:effectFound,amplitudeEffect:amplidudeEffect,length:wordCount});
         return lines;
     }
-    // #checkTextEffects(words){
-    //     this.#textEffects = []; // Reset text effects
-    //     const effectList = [];
-    //     let currentIndex= 0;
-    //     for(let i=0;i<words.length;i++){
-    //         if(words[i].startsWith("${")){
-    //             let j = i;
-    //             let closedEffects = 0;
-    //             this.#parseEffect(words[j].replace("${",""),j,effectList);
-    //             words.splice(i,1); // Remove the starting effect word
-    //             while (j < words.length && closedEffects < effectList.length) {
-    //                 if (words[j].startsWith("${")) {
-    //                     this.#parseEffect(words[j].replace("${",""),j,effectList);
-    //                     currentIndex=effectList.length-1;
-    //                     words.splice(j, 1); // Remove the starting effect word
-    //                     j--;
-    //                 } 
-    //                 if (words[j].endsWith("}")) {
-    //                     if(words[j].startsWith("}")){
-    //                         words.splice(j, 1);
-    //                         j--;
-    //                     } else{
-    //                         words[j] = words[j].slice(0,-1);
-    //                     }
-    //                     effectList[currentIndex].endIndex=j;
-    //                     closedEffects++;
-    //                     currentIndex=effectList.length-1-closedEffects;
-    //                     if(closedEffects===effectList.length){
-    //                         closedEffects=0;
-    //                     }
-    //                     j--;
-    //                 }
-    //                 j++;
-    //             }
-    //             this.#textEffects=effectList;
-    //         }
-    //     }
-    //     this.#updateEffect = false;
-    //     this.#value = words.join(' '); //Rebuild the text value without the effect markers
-    // }
     #checkTextEffects(words) {
         this.#textEffects = [];
         const effectList = [];
