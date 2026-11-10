@@ -28,6 +28,7 @@ class LightEmitter {
             rad.addColorStop(point[0],point[1]);
         }
         this.#color = rad;
+        this.#calculateLineAngle();
     }
 
     // Private methode
