@@ -379,7 +379,7 @@ class Gadget {
         }
     }
     set textBaseline(baseline){
-        if(baseline!=='top' && baseline!=='hanging' && baseline!=='middle' && baseline!=='alphabetic' && baseline!=='ideographoc' && baseline!=='bottom')
+        if(baseline!=='top' && baseline!=='hanging' && baseline!=='middle' && baseline!=='alphabetic' && baseline!=='ideographic' && baseline!=='bottom')
             throw new Error("Invalid value, textBaseline must be 'top','hanging','middle','alphabetic','ideographic' or 'bottom'");
         if(this.#textValue){
             this.#textValue.textBaseline = baseline;
