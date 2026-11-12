@@ -92,20 +92,21 @@ class Gadget {
         this.#update(cam)
         cam.cameraCtx.drawImage(this._cachCanvas,this.position.x,this.position.y,this.dimension.width,this.dimension.height)
     }
-    #update(cam){
-        const mouseX = cam.cameraMousePosition.x, mouseY = cam.cameraMousePosition.y
-        if(mouseX >= this.position.x-this.#hitbox.width && 
-            mouseX <= this.position.x+this.dimension.width+(this.#hitbox.width*2)  &&
-            mouseY >= this.position.y-this.#hitbox.height && 
-            mouseY <= this.position.y+this.dimension.height+(this.#hitbox.height*2)){
-            if(!this.#mouseOver&&!this.#isMouseOutOfCamera(cam)){this.#mouseOver=true;this.#mouseEnter(cam)}   
-        } else{
-            if(this.#mouseOver){this.#mouseOver=false;this.#mouseLeave(cam)}
+    #update(cam) {
+        const { x: mouseX, y: mouseY } = cam.cameraMousePosition;
+        const over = cam.isMouseOver &&
+            mouseX >= this.position.x - this.#hitbox.width &&
+            mouseX <= this.position.x + this.dimension.width + this.#hitbox.width * 2 &&
+            mouseY >= this.position.y - this.#hitbox.height &&
+            mouseY <= this.position.y + this.dimension.height + this.#hitbox.height * 2;
+
+        if (over) {
+            if (!this.#mouseOver) { this.#mouseOver = true; this.#mouseEnter(cam); }
+        } else if (this.#mouseOver) {
+            this.#mouseOver = false;
+            this.#mouseLeave(cam);
         }
-        if(this.#mouseOver){this.#mouseIsOver(cam)}
-    }
-    #isMouseOutOfCamera(cam){
-        return cam.cameraMousePosition.x === -1 && cam.cameraMousePosition.y === -1
+        if (this.#mouseOver) this.#mouseIsOver(cam);
     }
         
     #updateCachCanvas(){

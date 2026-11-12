@@ -27,6 +27,7 @@ class Camera {
     #onMouseMouve
     #onUpdate;
     #postProcess;
+    #isMouseOver = false;
     static mouseEvent = false;
     #cameraMousePosition={x:0,y:0}
     static cameras = []
@@ -203,29 +204,26 @@ class Camera {
     }
 
     // Private methodes
-    #setListeners(){
-        if(!Camera.mouseEvent){
-            Camera.mouseEvent = true;
-            document.addEventListener('mousemove',(e)=>{
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-            const y = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
-            Camera.cameras.forEach((cam) => {
-                if(e.pageX >= cam.position.x && e.pageX <= cam.position.x + cam.dimensions.width && e.pageY >= cam.position.y && e.pageY <= cam.position.y + cam.dimensions.height) {
-                    cam.#cameraMousePosition = {
-                        x:x - cam.position.x,
-                        y:y - cam.position.y
-                    }
-                    if(cam.#onMouseMouve) cam.#onMouseMouve(cam.cameraMousePosition);
-                } else {
-                    cam.#cameraMousePosition = {
-                        x:-1,
-                        y:-1
-                    }
-                }
-            })
-            })
+    #setListeners() {
+    if (Camera.mouseEvent) return;
+    Camera.mouseEvent = true;
+    document.addEventListener("mousemove", (e) => {
+        Camera.cameras.forEach((cam) => {
+        const rect = cam.canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const x = (e.clientX - rect.left) * (cam.canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (cam.canvas.height / rect.height);
+        const inside = x >= cam.position.x && x <= cam.position.x + cam.dimensions.width &&
+                        y >= cam.position.y && y <= cam.position.y + cam.dimensions.height;
+        if (inside) {
+            cam.#cameraMousePosition = { x: x - cam.position.x, y: y - cam.position.y };
+            if (cam.#onMouseMouve) cam.#onMouseMouve(cam.cameraMousePosition);
+            cam.#isMouseOver = true;
+        } else {
+            cam.#isMouseOver = false;
         }
+        });
+    });
     }
     _addToDrawList(elem,zOrder){
         this.#drawList.push({el:elem,zOrder:zOrder});
@@ -522,6 +520,9 @@ class Camera {
     }
     get postProcess(){
         return this.#postProcess;
+    }
+    get isMouseOver(){
+        return this.#isMouseOver;
     }
 }
 export  {Camera};

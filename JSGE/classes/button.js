@@ -1,4 +1,3 @@
-import {Camera} from './camera.js'
 import {Gadget} from './gadget.js'
 class Button extends Gadget {
     #backgroundType;
