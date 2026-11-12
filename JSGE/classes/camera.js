@@ -28,7 +28,6 @@ class Camera {
     #onUpdate;
     #postProcess;
     static mouseEvent = false;
-    static mousePosition={x:0,y:0};
     #cameraMousePosition={x:0,y:0}
     static cameras = []
     /**
@@ -208,15 +207,21 @@ class Camera {
         if(!Camera.mouseEvent){
             Camera.mouseEvent = true;
             document.addEventListener('mousemove',(e)=>{
-            Camera.mousePosition.x = e.pageX;
-            Camera.mousePosition.y = e.pageY;
+            const rect = this.canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+            const y = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
             Camera.cameras.forEach((cam) => {
                 if(e.pageX >= cam.position.x && e.pageX <= cam.position.x + cam.dimensions.width && e.pageY >= cam.position.y && e.pageY <= cam.position.y + cam.dimensions.height) {
                     cam.#cameraMousePosition = {
-                        x:e.pageX - cam.position.x,
-                        y:e.pageY - cam.position.y
+                        x:x - cam.position.x,
+                        y:y - cam.position.y
                     }
                     if(cam.#onMouseMouve) cam.#onMouseMouve(cam.cameraMousePosition);
+                } else {
+                    cam.#cameraMousePosition = {
+                        x:-1,
+                        y:-1
+                    }
                 }
             })
             })
