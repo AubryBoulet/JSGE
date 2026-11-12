@@ -80,9 +80,8 @@ class Gadget {
         }
     }
     _processDraw(cam){
-        const displayedPosition = {x:this.position.x+cam.position.x-(this.#position.offsetX||0),y:this.position.y+cam.position.y-(this.#position.offsetY||0)}
-        if(displayedPosition.x > cam.dimensions.width+cam.position.x || displayedPosition.x + this._cachCanvas.width <= cam.position.x ||
-            displayedPosition.y > cam.dimensions.height+cam.position.y || displayedPosition.y + this._cachCanvas.height <= cam.position.y)
+        if(this.position.x > cam.dimensions.width || this.position.x + this._cachCanvas.width <= 0 ||
+            this.position.y > cam.dimensions.height || this.position.y + this._cachCanvas.height <= 0)
             return;
         if(!cam instanceof Camera) throw new Error('Invalide camera object in ',cam);
         if(this.#textValue){
@@ -90,15 +89,15 @@ class Gadget {
                 this.#updateCachCanvas();
             }
         }
-        this.#update(displayedPosition,cam)
+        this.#update(cam)
         cam.cameraCtx.drawImage(this._cachCanvas,this.position.x,this.position.y,this.dimension.width,this.dimension.height)
     }
-    #update(displayedPosition,cam){
-        const mouseX = Camera.mousePosition.x, mouseY = Camera.mousePosition.y
-        if(mouseX >= displayedPosition.x-this.#hitbox.width && 
-            mouseX <= displayedPosition.x+this.dimension.width+(this.#hitbox.width*2)  &&
-            mouseY >= displayedPosition.y-this.#hitbox.height && 
-            mouseY <= displayedPosition.y+this.dimension.height+(this.#hitbox.height*2)){
+    #update(cam){
+        const mouseX = cam.cameraMousePosition.x, mouseY = cam.cameraMousePosition.y
+        if(mouseX >= this.position.x-this.#hitbox.width && 
+            mouseX <= this.position.x+this.dimension.width+(this.#hitbox.width*2)  &&
+            mouseY >= this.position.y-this.#hitbox.height && 
+            mouseY <= this.position.y+this.dimension.height+(this.#hitbox.height*2)){
             if(!this.#mouseOver&&!this.#isMouseOutOfCamera(cam)){this.#mouseOver=true;this.#mouseEnter(cam)}   
         } else{
             if(this.#mouseOver){this.#mouseOver=false;this.#mouseLeave(cam)}
@@ -106,9 +105,7 @@ class Gadget {
         if(this.#mouseOver){this.#mouseIsOver(cam)}
     }
     #isMouseOutOfCamera(cam){
-        const mouseX = Camera.mousePosition.x, mouseY = Camera.mousePosition.y
-        return mouseX <= cam.position.x || mouseX >= cam.position.x+cam.dimensions.width+8 ||
-            mouseY <= cam.position.y || mouseY >= cam.position.y+cam.dimensions.height
+        return cam.cameraMousePosition.x === -1 && cam.cameraMousePosition.y === -1
     }
         
     #updateCachCanvas(){
