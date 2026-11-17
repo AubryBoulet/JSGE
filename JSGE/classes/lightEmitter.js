@@ -7,7 +7,9 @@ class LightEmitter {
     #lookAt={x:1,y:0}
     #lineAngle
     _cachCanvas
-    constructor(x, y, radius, color, angleRange=360) {
+    #sourceMask
+    constructor(sourceMask, x, y, radius, color, angleRange=360) {
+        this.#sourceMask = sourceMask;
         this.#x = x;
         this.#y = y;
         this.#radius = radius;
@@ -28,6 +30,7 @@ class LightEmitter {
             rad.addColorStop(point[0],point[1]);
         }
         this.#color = rad;
+        this.#sourceMask._renderCanvasUpToDate = false;
     }
 
     // Private methode
@@ -67,14 +70,17 @@ class LightEmitter {
                 }
             }
         }
+        this.#sourceMask._renderCanvasUpToDate = false;
     }
 
     // Setters
     set x(value) {
         this.#x = value;
+        this.#sourceMask._renderCanvasUpToDate = false;
     }
     set y(value) {
         this.#y = value;
+        this.#sourceMask._renderCanvasUpToDate = false;
     }
     set radius(value) {
         this.#radius = value;
