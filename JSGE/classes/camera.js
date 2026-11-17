@@ -207,7 +207,7 @@ class Camera {
     #setListeners() {
     if (Camera.mouseEvent) return;
     Camera.mouseEvent = true;
-    document.addEventListener("mousemove", (e) => {
+    document.addEventListener("pointermove", (e) => {
         Camera.cameras.forEach((cam) => {
         const rect = cam.canvas.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
@@ -224,6 +224,11 @@ class Camera {
         }
         });
     });
+    document.addEventListener("pointerleave", () => {
+        Camera.cameras.forEach((cam) => {
+            cam.#isMouseOver = false;
+        })
+    })
     }
     _addToDrawList(elem,zOrder){
         this.#drawList.push({el:elem,zOrder:zOrder});
