@@ -11,6 +11,7 @@ class maskLightEngine {
     #zOrder = 999;
     #maskCanvas = document.createElement('canvas');
     #RenderCanvas = document.createElement('canvas');
+    _renderCanvasUpToDate = false;
     constructor(mask) {
         this.#mask = mask;
         this.#maskCanvas.width = mask.width;
@@ -21,12 +22,14 @@ class maskLightEngine {
     }
     // Public methods
     addLightEmitter(x,y,radius,color=null) {
-        const lightEmitterInstance = new LightEmitter(x, y, radius, color);
+        const lightEmitterInstance = new LightEmitter(this,x, y, radius, color);
         this.#lightEmitters.push(lightEmitterInstance);
+        this._renderCanvasUpToDate = false;
         return lightEmitterInstance;
     }
     removeLightEmitter(lightEmitterInstance) {
         this.#lightEmitters = this.#lightEmitters.filter(emitter => emitter !== lightEmitterInstance);
+        this._renderCanvasUpToDate = false;
     }
     getLightEmitters() {
         return this.#lightEmitters;
@@ -48,6 +51,7 @@ class maskLightEngine {
         maskCtx.fillRect(this.#mask.x, this.#mask.y, this.#mask.width, this.#mask.height);
     }
     #updateRenderCanvas() {
+        if(this._renderCanvasUpToDate) return;
         const renderCtx = this.#RenderCanvas.getContext('2d');
         renderCtx.clearRect(0, 0, this.#RenderCanvas.width, this.#RenderCanvas.height);
         renderCtx.drawImage(this.#maskCanvas, 0, 0);
@@ -64,6 +68,7 @@ class maskLightEngine {
             }
         }
         renderCtx.globalCompositeOperation = 'source-over';
+        this._renderCanvasUpToDate = true;
     }
     // Setters
     set mask(value) {
@@ -75,6 +80,7 @@ class maskLightEngine {
         this.#maskCanvas.width = this.#mask.width;
         this.#maskCanvas.height = this.#mask.height;
         this.#updateMaskCanvas();
+        this._renderCanvasUpToDate = false;
     }
     set zOrder(value) {
         this.#zOrder = value;
