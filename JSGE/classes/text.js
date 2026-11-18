@@ -72,8 +72,18 @@ class Text {
             }
         }
     }
+    #getAscent(textMetrics) {
+        return textMetrics.fontBoundingBoxAscent
+            ?? textMetrics.actualBoundingBoxAscent
+            ?? parseFloat(this.#textInfos.font)   // dernier recours : la taille de la police
+            ?? 16;
+    }
     #updateCanvas(){
         this.#ctx.clearRect(0,0,this.#canvas.width,this.#canvas.height);
+        this.#ctx.font = this.#textInfos.font;
+        this.#ctx.textAlign = this.#textInfos.align;
+        this.#ctx.textBaseline = this.#textInfos.baseline;
+        this.#ctx.direction = this.#textInfos.direction;
         const words = this.#value.split(' ');
         if(this.#updateEffect)
             this.#checkTextEffects(words);
@@ -92,10 +102,6 @@ class Text {
         this.#forceUpdate = true;
     }
     #drawLines(x,y,offsetY,line,i,textMetrics,wordIndex){
-        this.#ctx.font = this.#textInfos.font;
-        this.#ctx.textAlign = this.#textInfos.align;
-        this.#ctx.textBaseline = this.#textInfos.baseline;
-        this.#ctx.direction = this.#textInfos.direction;
         if(line.effect){
             const words = line.str.split(' ');
             const lineWidth = this.#ctx.measureText(line.str).width
@@ -108,7 +114,8 @@ class Text {
             this.#drawTextEffect(x,y,offsetY,offsetX,line,i,textMetrics,wordIndex,words);
         } else {
             this.#ctx.textAlign = this.#textInfos.align;
-            this.#ctx.fillText(line.str,x,y+i*textMetrics.emHeightAscent+this.#textInfos.lineHeight*i+offsetY);
+            this.#ctx.fillStyle = this.#textInfos.color
+            this.#ctx.fillText(line.str,x,y+i*this.#getAscent(textMetrics)+this.#textInfos.lineHeight*i+offsetY);
         }
     }
     #drawTextEffect(x,y,offsetY,offsetX,line,i,textMetrics,wordIndex,words){
@@ -123,7 +130,7 @@ class Text {
         for(let j=0;j<line.length;j++){
             const word = { text: words[j],
                 x: x + offsetX,
-                y: y + i * textMetrics.emHeightAscent + this.#textInfos.lineHeight * i + offsetY,
+                y: y + i * this.#getAscent(textMetrics) + this.#textInfos.lineHeight * i + offsetY,
                 display: true,
                 color: this.#textInfos.color,
              };
@@ -283,24 +290,24 @@ class Text {
     // End process effects
     ////////////////////////////////
     #calcPosition(textMetrics,rows){
-        let x=0,y=0,textHeight=textMetrics.emHeightAscent*rows+this.#textInfos.lineHeight*(rows-1);
+        let x=0,y=0,textHeight=this.#getAscent(textMetrics)*rows+this.#textInfos.lineHeight*(rows-1);
         switch(this.#textInfos.align){
             //'start','end','left','right' or 'center'
             case 'end':
             case 'right':
                 x+=this.#width;
-                y+=textMetrics.emHeightAscent;
+                y+=this.#getAscent(textMetrics);
                 break;
             case 'center':
                 x+=this.#width/2;
                 if(textHeight>=this.#height){
-                    y=textMetrics.emHeightAscent;
+                    y=this.#getAscent(textMetrics);
                 }else{
-                    y+=this.#height/2-textHeight/2+textMetrics.emHeightAscent;
+                    y+=this.#height/2-textHeight/2+this.#getAscent(textMetrics);
                 }
                 break;
             default:
-                y+=textMetrics.emHeightAscent;
+                y+=this.#getAscent(textMetrics);
         }
         return {x:x,y:y};
     }
